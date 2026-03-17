@@ -2,18 +2,20 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.agents.base import BaseAgent
+from src.agents.base import BaseAgent, RoundContext
 
 
 class FixedAttendanceAgent(BaseAgent):
     """
-    Attend if a fixed predicted attendance is weakly below the threshold.
+    Pure-strategy style agent:
+    given a fixed predicted attendance, attend if prediction <= threshold.
     """
 
-    def __init__(self, predicted_attendance: int, threshold: int) -> None:
+    def __init__(self, predicted_attendance: int) -> None:
+        if predicted_attendance < 0:
+            raise ValueError("predicted_attendance must be non-negative.")
         self.predicted_attendance = predicted_attendance
-        self.threshold = threshold
 
-    def choose_action(self, rng: np.random.Generator) -> int:
+    def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
         _ = rng
-        return int(self.predicted_attendance <= self.threshold)
+        return int(self.predicted_attendance <= context.threshold)

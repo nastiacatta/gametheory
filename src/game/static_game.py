@@ -5,8 +5,8 @@ from typing import List
 
 import numpy as np
 
-from src.agents.base import BaseAgent
-from src.game.payoff import payoffs_for_actions
+from src.agents.base import BaseAgent, RoundContext
+from src.game.payoff import attendance_from_actions, payoffs_for_actions
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,9 @@ class StaticGameResult:
 
 
 class StaticMinorityGame:
-    """Single-shot El Farol threshold game."""
+    """
+    Single-shot threshold minority game.
+    """
 
     def __init__(
         self,
@@ -35,7 +37,7 @@ class StaticMinorityGame:
         if len(agents) != n_players:
             raise ValueError("Number of agents must equal n_players.")
         if not (0 <= threshold <= n_players):
-            raise ValueError("threshold must lie between 0 and n_players.")
+            raise ValueError("threshold must be between 0 and n_players.")
 
         self.n_players = n_players
         self.threshold = threshold
@@ -43,12 +45,19 @@ class StaticMinorityGame:
         self.rng = np.random.default_rng(seed)
 
     def play(self) -> StaticGameResult:
-        actions = [agent.choose_action(self.rng) for agent in self.agents]
-        attendance = sum(actions)
+        context = RoundContext(
+            round_index=0,
+            n_players=self.n_players,
+            threshold=self.threshold,
+            attendance_history=(),
+        )
+
+        actions = [agent.choose_action(context, self.rng) for agent in self.agents]
+        attendance = attendance_from_actions(actions)
         payoffs = payoffs_for_actions(actions, self.threshold)
 
-        winners = [i for i, p in enumerate(payoffs) if p > 0]
-        losers = [i for i, p in enumerate(payoffs) if p < 0]
+        winners = [i for i, payoff in enumerate(payoffs) if payoff > 0]
+        losers = [i for i, payoff in enumerate(payoffs) if payoff < 0]
 
         return StaticGameResult(
             actions=actions,

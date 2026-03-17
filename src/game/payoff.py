@@ -3,16 +3,26 @@ from __future__ import annotations
 from typing import Iterable, List
 
 
+def validate_action(action: int) -> None:
+    if action not in (0, 1):
+        raise ValueError("Action must be 0 (stay home) or 1 (attend).")
+
+
+def attendance_from_actions(actions: Iterable[int]) -> int:
+    action_list = list(actions)
+    for action in action_list:
+        validate_action(action)
+    return sum(action_list)
+
+
 def payoff_for_action(action: int, attendance: int, threshold: int) -> int:
     """
-    Compute a single player's payoff.
+    Threshold formulation used in the coursework brief:
 
-    action:
-        1 means attend
-        0 means stay home
+    - if attendance <= threshold, attenders are happy
+    - if attendance > threshold, stay-home players are happy
     """
-    if action not in (0, 1):
-        raise ValueError("action must be 0 or 1.")
+    validate_action(action)
 
     if attendance <= threshold:
         return 1 if action == 1 else -1
@@ -20,10 +30,9 @@ def payoff_for_action(action: int, attendance: int, threshold: int) -> int:
 
 
 def payoffs_for_actions(actions: Iterable[int], threshold: int) -> List[int]:
-    """Compute payoffs for a full action profile."""
     action_list = list(actions)
-    attendance = sum(action_list)
+    attendance = attendance_from_actions(action_list)
     return [
-        payoff_for_action(action=a, attendance=attendance, threshold=threshold)
-        for a in action_list
+        payoff_for_action(action=action, attendance=attendance, threshold=threshold)
+        for action in action_list
     ]

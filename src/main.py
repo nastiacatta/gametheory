@@ -1,46 +1,41 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from src.agents.fixed_attendance_agent import FixedAttendanceAgent
 from src.agents.random_agent import RandomAgent
-from src.config import GameConfig
+from src.config import RepeatedGameConfig, StaticGameConfig
+from src.game.repeated_game import RepeatedMinorityGame
 from src.game.static_game import StaticMinorityGame
 
 
-def build_agents(n_players: int, threshold: int) -> list:
+def build_agents(n_players: int) -> list:
     """
-    Create a simple mixed population for the first static run.
-    Half random, half fixed-prediction.
+    Simple baseline population:
+    - half random agents
+    - half fixed-attendance agents
     """
     agents = []
     split = n_players // 2
 
     for _ in range(split):
         agents.append(RandomAgent(p_attend=0.55))
+
     for _ in range(n_players - split):
-        agents.append(FixedAttendanceAgent(predicted_attendance=58, threshold=threshold))
+        agents.append(FixedAttendanceAgent(predicted_attendance=58))
 
     return agents
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run one static minority-game simulation.")
-    parser.add_argument("--n_players", type=int, default=101)
-    parser.add_argument("--threshold", type=int, default=60)
-    parser.add_argument("--seed", type=int, default=42)
-    return parser.parse_args()
-
-
-def main() -> None:
-    args = parse_args()
-    config = GameConfig(
+def run_static(args: argparse.Namespace) -> None:
+    config = StaticGameConfig(
         n_players=args.n_players,
         threshold=args.threshold,
         seed=args.seed,
     )
+    agents = build_agents(config.n_players)
 
-    agents = build_agents(config.n_players, config.threshold)
     game = StaticMinorityGame(
         n_players=config.n_players,
         threshold=config.threshold,
@@ -49,16 +44,75 @@ def main() -> None:
     )
     result = game.play()
 
-    print("Static minority game result")
-    print(f"N = {config.n_players}")
-    print(f"L = {config.threshold}")
-    print(f"attendance = {result.attendance}")
-    print(f"attendance_rate = {result.attendance_rate:.3f}")
-    print(f"overcrowded = {result.overcrowded}")
-    print(f"number_of_winners = {len(result.winners)}")
-    print(f"number_of_losers = {len(result.losers)}")
-    print(f"first_10_actions = {result.actions[:10]}")
-    print(f"first_10_payoffs = {result.payoffs[:10]}")
+    print("=== STATIC GAME ===")
+    print(f"n_players={config.n_players}")
+    print(f"threshold={config.threshold}")
+    print(f"attendance={result.attendance}")
+    print(f"attendance_rate={result.attendance_rate:.3f}")
+    print(f"overcrowded={result.overcrowded}")
+    print(f"number_of_winners={len(result.winners)}")
+    print(f"number_of_losers={len(result.losers)}")
+    print(f"first_10_actions={result.actions[:10]}")
+    print(f"first_10_payoffs={result.payoffs[:10]}")
+
+
+def run_repeated(args: argparse.Namespace) -> None:
+    config = RepeatedGameConfig(
+        n_players=args.n_players,
+        threshold=args.threshold,
+        n_rounds=args.n_rounds,
+        seed=args.seed,
+    )
+    agents = build_agents(config.n_players)
+
+    game = RepeatedMinorityGame(
+        n_players=config.n_players,
+        threshold=config.threshold,
+        n_rounds=config.n_rounds,
+        agents=agents,
+        seed=config.seed,
+    )
+    result = game.play()
+
+    summary = result.summary()
+    print("=== REPEATED GAME ===")
+    for key, value in summary.items():
+        print(f"{key}={value}")
+
+    output_dir = Path(args.output_dir)
+    result.save_outputs(output_dir)
+    print(f"Saved CSV and figure outputs to: {output_dir.resolve()}")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Minority game runner")
+    subparsers = parser.add_subparsers(dest="mode", required=True)
+
+    static_parser = subparsers.add_parser("static")
+    static_parser.add_argument("--n_players", type=int, default=101)
+    static_parser.add_argument("--threshold", type=int, default=60)
+    static_parser.add_argument("--seed", type=int, default=42)
+
+    repeated_parser = subparsers.add_parser("repeated")
+    repeated_parser.add_argument("--n_players", type=int, default=101)
+    repeated_parser.add_argument("--threshold", type=int, default=60)
+    repeated_parser.add_argument("--n_rounds", type=int, default=200)
+    repeated_parser.add_argument("--seed", type=int, default=42)
+    repeated_parser.add_argument("--output_dir", type=str, default="outputs")
+
+    return parser
+
+
+def main() -> None:
+    parser = build_parser()
+    args = parser.parse_args()
+
+    if args.mode == "static":
+        run_static(args)
+    elif args.mode == "repeated":
+        run_repeated(args)
+    else:
+        raise ValueError(f"Unknown mode: {args.mode}")
 
 
 if __name__ == "__main__":
