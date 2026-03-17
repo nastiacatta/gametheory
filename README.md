@@ -10,7 +10,7 @@ Simulation code for the El Farol / threshold minority game in normal-form: confi
 ## Reproducibility
 
 - All randomness is driven by a **seed** (default `42`). Use `--seed` to reproduce runs.
-- Dependency versions are pinned in `requirements.txt` for consistent environments.
+- Dependency versions use bounded ranges in `requirements.txt` (e.g. `numpy>=1.24,<3`) for consistent environments; not strictly pinned to exact versions.
 - Run from the **project root** so that `src` is on the module path (e.g. `python -m src.main`).
 
 ## Quickstart (clean run)
@@ -119,6 +119,8 @@ Tests cover payoff logic, configs, predictors, inductive agents, metrics, the st
 - If *A* ≤ *L*: attendees receive payoff +1.
 - If *A* > *L*: attendees receive payoff −1.
 - Stay home: payoff 0 (neutral).
+
+**Report requirement:** The brief allows consistent definitions but does not force a unique stay-home utility. You must state explicitly in the report that stay-home payoff is 0 (neutral); otherwise the marker may assume a different formulation.
 
 See `docs/game_definition.md` for the full normal-form definition, Nash equilibria, and inductive strategies.
 

@@ -1,21 +1,24 @@
 # Local context only — do not commit
 pdfs/
 
-# Virtual environments
-.venv/
-venv/
-env/
-
-# Python
+# Python / build
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-*.egg-info/
 .eggs/
+*.egg-info/
 dist/
 build/
+
+# OS
+.DS_Store
+
+# Virtual environments
+.venv/
+venv/
+env/
 
 # Testing / tools
 .pytest_cache/
@@ -28,11 +31,10 @@ htmlcov/
 outputs/*
 !outputs/.gitkeep
 
-# IDE / OS
+# IDE
 .idea/
 .vscode/
 *.swp
-.DS_Store
 
 # Environment
 .env
