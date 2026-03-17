@@ -1,3 +1,10 @@
+"""
+Repeated minority game: same agents over m rounds, cumulative payoffs.
+
+Provides summary statistics, DataFrames for rounds/players, and optional
+CSV/plot output for report-ready analysis.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -37,6 +44,16 @@ class RepeatedGameResult:
         return [round_result.overcrowded for round_result in self.rounds]
 
     def summary(self) -> Dict[str, float]:
+        if not self.rounds:
+            return {
+                "n_rounds": 0.0,
+                "mean_attendance": float("nan"),
+                "std_attendance": float("nan"),
+                "fraction_overcrowded": float("nan"),
+                "mean_cumulative_payoff": float("nan"),
+                "min_cumulative_payoff": float("nan"),
+                "max_cumulative_payoff": float("nan"),
+            }
         attendance = np.array(self.attendance_history, dtype=float)
         cumulative = np.array(self.cumulative_payoffs, dtype=float)
 
@@ -44,8 +61,11 @@ class RepeatedGameResult:
             "n_rounds": float(len(self.rounds)),
             "mean_attendance": float(attendance.mean()),
             "std_attendance": float(attendance.std()),
+            "variance_from_threshold": float(np.mean((attendance - self.threshold) ** 2)),
+            "mad_from_threshold": float(np.mean(np.abs(attendance - self.threshold))),
             "fraction_overcrowded": float(np.mean(self.overcrowded_rounds)),
             "mean_cumulative_payoff": float(cumulative.mean()),
+            "std_cumulative_payoff": float(cumulative.std()),
             "min_cumulative_payoff": float(cumulative.min()),
             "max_cumulative_payoff": float(cumulative.max()),
         }
@@ -118,6 +138,8 @@ class RepeatedMinorityGame:
     ) -> None:
         if n_players <= 0:
             raise ValueError("n_players must be positive.")
+        if n_players % 2 == 0:
+            raise ValueError("n_players should be odd for this coursework setup.")
         if n_rounds <= 0:
             raise ValueError("n_rounds must be positive.")
         if len(agents) != n_players:

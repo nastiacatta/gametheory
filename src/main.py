@@ -1,8 +1,16 @@
+"""
+CLI for the minority game: static (one shot) or repeated (m rounds).
+
+Run from project root: python -m src.main static | repeated [options]
+"""
+
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from typing import List
 
+from src.agents.base import BaseAgent
 from src.agents.fixed_attendance_agent import FixedAttendanceAgent
 from src.agents.random_agent import RandomAgent
 from src.config import RepeatedGameConfig, StaticGameConfig
@@ -10,7 +18,7 @@ from src.game.repeated_game import RepeatedMinorityGame
 from src.game.static_game import StaticMinorityGame
 
 
-def build_agents(n_players: int) -> list:
+def build_agents(n_players: int) -> List[BaseAgent]:
     """
     Simple baseline population:
     - half random agents

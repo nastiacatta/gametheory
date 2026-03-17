@@ -29,9 +29,17 @@ def test_static_game_one_round() -> None:
     assert result.actions == [1, 1, 0, 0, 1]
     assert result.attendance == 3
     assert result.overcrowded is True
-    assert result.payoffs == [-1, -1, 1, 1, -1]
-    assert result.winners == [2, 3]
+    # Lecture payoff: attend + overcrowded => -1; stay home => 0
+    assert result.payoffs == [-1, -1, 0, 0, -1]
+    assert result.winners == []
     assert result.losers == [0, 1, 4]
+
+
+def test_static_game_rejects_even_n() -> None:
+    import pytest
+    agents = [DeterministicAgent(0) for _ in range(4)]
+    with pytest.raises(ValueError, match="odd"):
+        StaticMinorityGame(n_players=4, threshold=2, agents=agents, seed=1)
 
 
 def test_static_game_at_threshold() -> None:
@@ -45,4 +53,7 @@ def test_static_game_at_threshold() -> None:
 
     assert result.attendance == 2
     assert result.overcrowded is False
-    assert result.payoffs == [1, 1, -1]
+    # A=L: attendees +1, stay home 0
+    assert result.payoffs == [1, 1, 0]
+    assert result.winners == [0, 1]
+    assert result.losers == []

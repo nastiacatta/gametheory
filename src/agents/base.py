@@ -1,3 +1,10 @@
+"""
+Base agent interface for the minority game.
+
+RoundContext is passed each round so that future inductive agents can use
+history; update() is a no-op for non-learning agents.
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -6,9 +13,13 @@ from typing import Tuple
 
 import numpy as np
 
+__all__ = ["RoundContext", "BaseAgent"]
+
 
 @dataclass(frozen=True)
 class RoundContext:
+    """Immutable context for one round: index, game size, threshold, past attendances."""
+
     round_index: int
     n_players: int
     threshold: int
