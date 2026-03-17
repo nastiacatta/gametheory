@@ -13,16 +13,25 @@ Simulation code for the El Farol / threshold minority game in normal-form: confi
 - Dependency versions are pinned in `requirements.txt` for consistent environments.
 - Run from the **project root** so that `src` is on the module path (e.g. `python -m src.main`).
 
-## Setup
+## Quickstart (clean run)
 
 ```bash
-# Clone or unpack the project, then from the project root:
+# From the project root:
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
+
+# Run tests (should pass)
+python -m pytest
 ```
 
 ## Running the code
+
+The default coursework-style parameters are **n=101**, **L=60**, **m=200**.
+
+Notes:
+- **Odd n**: the game engines enforce odd `--n_players` (typical in minority-game setups).
+- **A = L convention**: attendees are treated as “not overcrowded” when \(A \le L\).
 
 **Static (single-shot) game:**
 
@@ -36,7 +45,12 @@ python -m src.main static [--n_players 101] [--threshold 60] [--seed 42]
 python -m src.main repeated [--n_players 101] [--threshold 60] [--n_rounds 200] [--seed 42] [--output_dir outputs]
 ```
 
-Outputs (CSVs and figures) are written to `--output_dir`; the directory is created if it does not exist.
+Outputs (CSVs and figures) are written to `--output_dir`; the directory is created if it does not exist. The repeated runner writes:
+
+- `repeated_rounds.csv`: round-by-round attendance, overcrowding, mean round payoff
+- `repeated_players.csv`: player-level cumulative payoffs
+- `repeated_summary.csv`: summary metrics (including threshold-centred deviation measures)
+- `attendance_over_time.png`, `cumulative_average_attendance.png`
 
 ## Tests
 
@@ -48,7 +62,7 @@ pytest
 pytest -v
 ```
 
-Tests cover payoff logic, the static game, and the repeated game (cumulative payoffs and summary statistics).
+Tests cover payoff logic, configs, predictors, inductive agents, metrics, the static game, and the repeated game.
 
 ## Project layout
 
@@ -121,6 +135,8 @@ python -m src.experiments.run_inductive --mode softmax --beta 1.0 --n_rounds 200
 python -m src.experiments.run_heterogeneous --mode mix --p_best 0.5 --p_softmax 0.5 --n_rounds 200
 python -m src.experiments.run_heterogeneous --mode producer_speculator --n_producers 50 --n_rounds 200
 ```
+
+Each experiment runner writes `rounds.csv`, `players.csv`, `summary.csv` plus figures into its `--output_dir`.
 
 ## Licence and use
 
