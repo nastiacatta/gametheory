@@ -15,7 +15,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-from src.agents.base import BaseAgent, RoundContext
+from src.agents.base import BaseAgent
 from src.agents.predictors import Predictor, default_predictor_library
 
 
@@ -27,10 +27,14 @@ class BestPredictorAgent(BaseAgent):
 
     def __init__(
         self,
+        n_players: int,
         predictors: Optional[List[Tuple[str, Predictor]]] = None,
     ) -> None:
+        if n_players <= 0:
+            raise ValueError("n_players must be positive.")
         if predictors is None:
             predictors = default_predictor_library()
+        self.n_players = n_players
         self.predictor_names: List[str] = [name for name, _ in predictors]
         self.predictors: List[Predictor] = [fn for _, fn in predictors]
         self.scores: List[float] = [0.0] * len(self.predictors)
@@ -38,27 +42,26 @@ class BestPredictorAgent(BaseAgent):
         self._active_idx: int = 0
         self.predictor_history: List[int] = []
 
-    def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
-        history = context.attendance_history
-        predictions = [
-            p(history, context.n_players, context.threshold)
-            for p in self.predictors
-        ]
+    def choose_action(self, history, threshold: int, rng: np.random.Generator) -> int:
+        # This agent does not need randomness for selection, but uses RNG signature for consistency.
+        _ = rng
+        hist = tuple(history)
+        predictions = [p(hist, self.n_players, threshold) for p in self.predictors]
         self._last_predictions = predictions
 
         best_idx = max(range(len(self.scores)), key=lambda j: self.scores[j])
         self._active_idx = best_idx
         self.predictor_history.append(best_idx)
 
-        return int(predictions[best_idx] <= context.threshold)
+        return int(predictions[best_idx] <= threshold)
 
     def update(
         self,
-        context: RoundContext,
-        action: int,
+        history_before,
         realised_attendance: int,
-        payoff: int,
+        realised_payoff: int,
     ) -> None:
+        _ = history_before, realised_payoff
         for j, pred in enumerate(self._last_predictions):
             self.scores[j] -= abs(pred - realised_attendance)
 

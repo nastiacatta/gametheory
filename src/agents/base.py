@@ -1,41 +1,29 @@
 """
 Base agent interface for the minority game.
 
-RoundContext is passed each round so that future inductive agents can use
-history; update() is a no-op for non-learning agents.
+The coursework brief motivates repeated play where agents observe the
+attendance history and may adapt between rounds (Arthur-style inductive
+predictors). For that reason, the core interface is history-aware.
 """
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Tuple
+from typing import Any, Sequence
 
 import numpy as np
 
-__all__ = ["RoundContext", "BaseAgent"]
-
-
-@dataclass(frozen=True)
-class RoundContext:
-    """Immutable context for one round: index, game size, threshold, past attendances."""
-
-    round_index: int
-    n_players: int
-    threshold: int
-    attendance_history: Tuple[int, ...]
+__all__ = ["BaseAgent"]
 
 
 class BaseAgent(ABC):
-    """
-    Base class for agents in the minority game.
-
-    The repeated-game hook is included now so that the same agent interface
-    can be reused later for inductive strategies.
-    """
-
     @abstractmethod
-    def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
+    def choose_action(
+        self,
+        history: Sequence[int],
+        threshold: int,
+        rng: np.random.Generator,
+    ) -> int:
         """
         Return 1 for attend, 0 for stay home.
         """
@@ -43,16 +31,22 @@ class BaseAgent(ABC):
 
     def update(
         self,
-        context: RoundContext,
-        action: int,
+        history_before: Sequence[int],
         realised_attendance: int,
-        payoff: int,
+        realised_payoff: int,
     ) -> None:
         """
         Default: no learning or adaptation.
-        This is intentional for the first two coursework blocks.
         """
         return None
+
+    def reset(self) -> None:
+        """Reset any internal state before a new repeated-game run."""
+        return None
+
+    def snapshot(self) -> dict[str, Any]:
+        """Return serialisable state for reporting/exports."""
+        return {"agent_type": self.__class__.__name__}
 
     def name(self) -> str:
         return self.__class__.__name__

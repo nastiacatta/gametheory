@@ -21,12 +21,12 @@ from src.agents.softmax_predictor_agent import SoftmaxPredictorAgent
 
 def build_homogeneous_best_predictor(n_players: int) -> List[BaseAgent]:
     """All agents use Arthur best-predictor."""
-    return [BestPredictorAgent() for _ in range(n_players)]
+    return [BestPredictorAgent(n_players=n_players) for _ in range(n_players)]
 
 
 def build_homogeneous_softmax(n_players: int, beta: float = 1.0) -> List[BaseAgent]:
     """All agents use softmax predictor selection."""
-    return [SoftmaxPredictorAgent(beta=beta) for _ in range(n_players)]
+    return [SoftmaxPredictorAgent(n_players=n_players, beta=beta) for _ in range(n_players)]
 
 
 def build_homogeneous_random(n_players: int, p_attend: float = 0.5) -> List[BaseAgent]:
@@ -54,8 +54,8 @@ def build_heterogeneous(
     n_softmax = int(round(n_players * p_softmax))
     n_random = n_players - n_best - n_softmax
     agents: List[BaseAgent] = []
-    agents.extend([BestPredictorAgent() for _ in range(n_best)])
-    agents.extend([SoftmaxPredictorAgent(beta=beta) for _ in range(n_softmax)])
+    agents.extend([BestPredictorAgent(n_players=n_players) for _ in range(n_best)])
+    agents.extend([SoftmaxPredictorAgent(n_players=n_players, beta=beta) for _ in range(n_softmax)])
     agents.extend([RandomAgent(p_attend=0.5) for _ in range(n_random)])
     return agents
 
@@ -76,9 +76,9 @@ def build_producer_speculator(
     agents: List[BaseAgent] = []
     agents.extend([ProducerAgent(base_prediction=50.0, noise_std=5.0) for _ in range(n_producers)])
     if speculator_type == "best":
-        agents.extend([BestPredictorAgent() for _ in range(n_speculators)])
+        agents.extend([BestPredictorAgent(n_players=n_players) for _ in range(n_speculators)])
     elif speculator_type == "softmax":
-        agents.extend([SoftmaxPredictorAgent(beta=beta) for _ in range(n_speculators)])
+        agents.extend([SoftmaxPredictorAgent(n_players=n_players, beta=beta) for _ in range(n_speculators)])
     else:
         raise ValueError("speculator_type must be 'best' or 'softmax'.")
     return agents

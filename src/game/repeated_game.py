@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from src.agents.base import BaseAgent, RoundContext
-from src.game.payoff import attendance_from_actions, payoffs_for_actions
+from src.agents.base import BaseAgent
+from src.game.payoff import build_stage_outcome
 
 
 @dataclass(frozen=True)
@@ -158,37 +158,36 @@ class RepeatedMinorityGame:
         cumulative_payoffs = [0 for _ in range(self.n_players)]
         attendance_history: List[int] = []
 
+        for agent in self.agents:
+            agent.reset()
+
         for t in range(self.n_rounds):
-            context = RoundContext(
-                round_index=t,
-                n_players=self.n_players,
-                threshold=self.threshold,
-                attendance_history=tuple(attendance_history),
-            )
+            history_before = list(attendance_history)
+            actions = [
+                agent.choose_action(history=history_before, threshold=self.threshold, rng=self.rng)
+                for agent in self.agents
+            ]
 
-            actions = [agent.choose_action(context, self.rng) for agent in self.agents]
-            attendance = attendance_from_actions(actions)
-            payoffs = payoffs_for_actions(actions, self.threshold)
+            stage = build_stage_outcome(actions, self.threshold)
 
-            for i, payoff in enumerate(payoffs):
+            for i, payoff in enumerate(stage.payoffs):
                 cumulative_payoffs[i] += payoff
 
             round_result = RoundResult(
                 round_index=t,
-                actions=actions,
-                attendance=attendance,
-                payoffs=payoffs,
-                overcrowded=attendance > self.threshold,
+                actions=stage.actions,
+                attendance=stage.attendance,
+                payoffs=stage.payoffs,
+                overcrowded=stage.overcrowded,
             )
             rounds.append(round_result)
-            attendance_history.append(attendance)
+            attendance_history.append(stage.attendance)
 
-            for agent, action, payoff in zip(self.agents, actions, payoffs):
+            for i, agent in enumerate(self.agents):
                 agent.update(
-                    context=context,
-                    action=action,
-                    realised_attendance=attendance,
-                    payoff=payoff,
+                    history_before=history_before,
+                    realised_attendance=stage.attendance,
+                    realised_payoff=stage.payoffs[i],
                 )
 
         return RepeatedGameResult(

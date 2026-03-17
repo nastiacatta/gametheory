@@ -7,12 +7,12 @@ Returns per-player actions and payoffs for a given (n, L) and agent list.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
+from typing import List, Sequence
 
 import numpy as np
 
-from src.agents.base import BaseAgent, RoundContext
-from src.game.payoff import attendance_from_actions, payoffs_for_actions
+from src.agents.base import BaseAgent
+from src.game.payoff import build_stage_outcome
 
 
 @dataclass(frozen=True)
@@ -55,27 +55,23 @@ class StaticMinorityGame:
         self.agents = agents
         self.rng = np.random.default_rng(seed)
 
-    def play(self) -> StaticGameResult:
-        context = RoundContext(
-            round_index=0,
-            n_players=self.n_players,
-            threshold=self.threshold,
-            attendance_history=(),
-        )
+    def play(self, history: Sequence[int] | None = None) -> StaticGameResult:
+        history_list = [] if history is None else list(history)
+        actions = [
+            agent.choose_action(history=history_list, threshold=self.threshold, rng=self.rng)
+            for agent in self.agents
+        ]
+        stage = build_stage_outcome(actions, self.threshold)
 
-        actions = [agent.choose_action(context, self.rng) for agent in self.agents]
-        attendance = attendance_from_actions(actions)
-        payoffs = payoffs_for_actions(actions, self.threshold)
-
-        winners = [i for i, payoff in enumerate(payoffs) if payoff > 0]
-        losers = [i for i, payoff in enumerate(payoffs) if payoff < 0]
+        winners = [i for i, payoff in enumerate(stage.payoffs) if payoff > 0]
+        losers = [i for i, payoff in enumerate(stage.payoffs) if payoff < 0]
 
         return StaticGameResult(
-            actions=actions,
-            attendance=attendance,
-            payoffs=payoffs,
+            actions=stage.actions,
+            attendance=stage.attendance,
+            payoffs=stage.payoffs,
             winners=winners,
             losers=losers,
-            attendance_rate=attendance / self.n_players,
-            overcrowded=attendance > self.threshold,
+            attendance_rate=stage.attendance / self.n_players,
+            overcrowded=stage.overcrowded,
         )
