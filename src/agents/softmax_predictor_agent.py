@@ -16,7 +16,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-from src.agents.base import BaseAgent
+from src.agents.base import BaseAgent, RoundContext
 from src.agents.predictors import Predictor, default_predictor_library
 
 
@@ -27,7 +27,6 @@ class SoftmaxPredictorAgent(BaseAgent):
 
     def __init__(
         self,
-        n_players: int,
         predictors: Optional[List[Tuple[str, Predictor]]] = None,
         beta: float = 1.0,
     ) -> None:
@@ -35,9 +34,6 @@ class SoftmaxPredictorAgent(BaseAgent):
             predictors = default_predictor_library()
         if beta < 0.0:
             raise ValueError("beta (inverse temperature) must be non-negative.")
-        if n_players <= 0:
-            raise ValueError("n_players must be positive.")
-        self.n_players = n_players
         self.predictor_names: List[str] = [name for name, _ in predictors]
         self.predictors: List[Predictor] = [fn for _, fn in predictors]
         self.scores: List[float] = [0.0] * len(self.predictors)
@@ -46,9 +42,10 @@ class SoftmaxPredictorAgent(BaseAgent):
         self._active_idx: int = 0
         self.predictor_history: List[int] = []
 
-    def choose_action(self, history, threshold: int, rng: np.random.Generator) -> int:
-        hist = tuple(history)
-        predictions = [p(hist, self.n_players, threshold) for p in self.predictors]
+    def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
+        predictions = [
+            p(context.history, context.n_players, context.threshold) for p in self.predictors
+        ]
         self._last_predictions = predictions
 
         scores_arr = np.array(self.scores)
@@ -60,15 +57,16 @@ class SoftmaxPredictorAgent(BaseAgent):
         self._active_idx = chosen_idx
         self.predictor_history.append(chosen_idx)
 
-        return int(predictions[chosen_idx] <= threshold)
+        return int(predictions[chosen_idx] <= context.threshold)
 
     def update(
         self,
-        history_before,
+        context: RoundContext,
+        action: int,
         realised_attendance: int,
-        realised_payoff: int,
+        payoff: int,
     ) -> None:
-        _ = history_before, realised_payoff
+        _ = context, action, payoff
         for j, pred in enumerate(self._last_predictions):
             self.scores[j] -= abs(pred - realised_attendance)
 

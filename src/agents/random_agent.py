@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.agents.base import BaseAgent
+from src.agents.base import BaseAgent, RoundContext
 
 
 class RandomAgent(BaseAgent):
@@ -20,6 +20,6 @@ class RandomAgent(BaseAgent):
             raise ValueError("p_attend must be in [0, 1].")
         self.p_attend = p_attend
 
-    def choose_action(self, history, threshold: int, rng: np.random.Generator) -> int:
-        _ = history, threshold
+    def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
+        _ = context
         return int(rng.random() < self.p_attend)

@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from src.agents.base import BaseAgent
+from src.agents.base import BaseAgent, RoundContext
 from src.game.payoff import build_stage_outcome
 
 
@@ -48,12 +48,13 @@ class RepeatedGameResult:
             return {
                 "n_rounds": 0.0,
                 "mean_attendance": float("nan"),
-                "std_attendance": float("nan"),
-                "fraction_overcrowded": float("nan"),
                 "mean_cumulative_payoff": float("nan"),
                 "min_cumulative_payoff": float("nan"),
                 "max_cumulative_payoff": float("nan"),
+                "fraction_overcrowded": float("nan"),
+                "std_attendance": float("nan"),
             }
+
         attendance = np.array(self.attendance_history, dtype=float)
         cumulative = np.array(self.cumulative_payoffs, dtype=float)
 
@@ -61,11 +62,8 @@ class RepeatedGameResult:
             "n_rounds": float(len(self.rounds)),
             "mean_attendance": float(attendance.mean()),
             "std_attendance": float(attendance.std()),
-            "variance_from_threshold": float(np.mean((attendance - self.threshold) ** 2)),
-            "mad_from_threshold": float(np.mean(np.abs(attendance - self.threshold))),
             "fraction_overcrowded": float(np.mean(self.overcrowded_rounds)),
             "mean_cumulative_payoff": float(cumulative.mean()),
-            "std_cumulative_payoff": float(cumulative.std()),
             "min_cumulative_payoff": float(cumulative.min()),
             "max_cumulative_payoff": float(cumulative.max()),
         }
@@ -162,9 +160,15 @@ class RepeatedMinorityGame:
             agent.reset()
 
         for t in range(self.n_rounds):
-            history_before = list(attendance_history)
+            history_before = tuple(attendance_history)
+            context = RoundContext(
+                n_players=self.n_players,
+                threshold=self.threshold,
+                history=history_before,
+                round_index=t,
+            )
             actions = [
-                agent.choose_action(history=history_before, threshold=self.threshold, rng=self.rng)
+                agent.choose_action(context=context, rng=self.rng)
                 for agent in self.agents
             ]
 
@@ -185,9 +189,10 @@ class RepeatedMinorityGame:
 
             for i, agent in enumerate(self.agents):
                 agent.update(
-                    history_before=history_before,
+                    context=context,
+                    action=stage.actions[i],
                     realised_attendance=stage.attendance,
-                    realised_payoff=stage.payoffs[i],
+                    payoff=stage.payoffs[i],
                 )
 
         return RepeatedGameResult(

@@ -3,25 +3,48 @@ Base agent interface for the minority game.
 
 The coursework brief motivates repeated play where agents observe the
 attendance history and may adapt between rounds (Arthur-style inductive
-predictors). For that reason, the core interface is history-aware.
+predictors). For that reason, agents receive a round context containing
+the shared state they may condition on.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from typing import Any, Sequence
+from typing import Any
 
 import numpy as np
 
-__all__ = ["BaseAgent"]
+__all__ = ["RoundContext", "BaseAgent"]
+
+
+@dataclass(frozen=True)
+class RoundContext:
+    """
+    Immutable per-round context passed to agents.
+
+    Attributes:
+        n_players: total number of players in the game.
+        threshold: attendance threshold L.
+        history: realised attendance history before the current round.
+        round_index: 0-based round index for repeated play; None for single-shot.
+    """
+
+    n_players: int
+    threshold: int
+    history: tuple[int, ...]
+    round_index: int | None = None
+
+    @property
+    def attendance_history(self) -> tuple[int, ...]:
+        return self.history
 
 
 class BaseAgent(ABC):
     @abstractmethod
     def choose_action(
         self,
-        history: Sequence[int],
-        threshold: int,
+        context: RoundContext,
         rng: np.random.Generator,
     ) -> int:
         """
@@ -31,13 +54,15 @@ class BaseAgent(ABC):
 
     def update(
         self,
-        history_before: Sequence[int],
+        context: RoundContext,
+        action: int,
         realised_attendance: int,
-        realised_payoff: int,
+        payoff: int,
     ) -> None:
         """
         Default: no learning or adaptation.
         """
+        _ = context, action, realised_attendance, payoff
         return None
 
     def reset(self) -> None:

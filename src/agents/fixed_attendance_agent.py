@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.agents.base import BaseAgent
+from src.agents.base import BaseAgent, RoundContext
 
 
 class FixedAttendanceAgent(BaseAgent):
@@ -20,6 +20,6 @@ class FixedAttendanceAgent(BaseAgent):
             raise ValueError("predicted_attendance must be non-negative.")
         self.predicted_attendance = predicted_attendance
 
-    def choose_action(self, history, threshold: int, rng: np.random.Generator) -> int:
-        _ = history, rng
-        return int(self.predicted_attendance <= threshold)
+    def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
+        _ = rng
+        return int(self.predicted_attendance <= context.threshold)

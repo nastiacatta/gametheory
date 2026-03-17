@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.agents.base import BaseAgent
+from src.agents.base import BaseAgent, RoundContext
 from src.game.static_game import StaticMinorityGame
 
 
@@ -10,8 +10,8 @@ class DeterministicAgent(BaseAgent):
     def __init__(self, action: int) -> None:
         self.action = action
 
-    def choose_action(self, history, threshold: int, rng: np.random.Generator) -> int:
-        _ = history, threshold, rng
+    def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
+        _ = context, rng
         return self.action
 
 

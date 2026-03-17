@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.agents.base import BaseAgent
+from src.agents.base import BaseAgent, RoundContext
 
 
 class ProducerAgent(BaseAgent):
@@ -29,7 +29,7 @@ class ProducerAgent(BaseAgent):
         self.base_prediction = base_prediction
         self.noise_std = noise_std
 
-    def choose_action(self, history, threshold: int, rng: np.random.Generator) -> int:
-        _ = history
+    def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
+        _ = context
         prediction = self.base_prediction + rng.normal(0.0, self.noise_std)
-        return int(prediction <= threshold)
+        return int(prediction <= context.threshold)

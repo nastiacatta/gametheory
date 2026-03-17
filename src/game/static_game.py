@@ -11,7 +11,7 @@ from typing import List, Sequence
 
 import numpy as np
 
-from src.agents.base import BaseAgent
+from src.agents.base import BaseAgent, RoundContext
 from src.game.payoff import build_stage_outcome
 
 
@@ -56,9 +56,15 @@ class StaticMinorityGame:
         self.rng = np.random.default_rng(seed)
 
     def play(self, history: Sequence[int] | None = None) -> StaticGameResult:
-        history_list = [] if history is None else list(history)
+        history_tuple = tuple([] if history is None else list(history))
+        context = RoundContext(
+            n_players=self.n_players,
+            threshold=self.threshold,
+            history=history_tuple,
+            round_index=None,
+        )
         actions = [
-            agent.choose_action(history=history_list, threshold=self.threshold, rng=self.rng)
+            agent.choose_action(context=context, rng=self.rng)
             for agent in self.agents
         ]
         stage = build_stage_outcome(actions, self.threshold)
