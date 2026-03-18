@@ -68,21 +68,18 @@ python -m src.main repeated [--n_players 101] [--threshold 60] [--n_rounds 200] 
 **Inductive agents (predictor-based):**
 
 ```bash
-# Best-predictor (hard argmax)
-python -m src.main inductive --mode best --n_rounds 200
+# Non-recency: cumulative scoring
+python -m src.main inductive --mode non_recency --n_rounds 200
 
-# Softmax selection with temperature
-python -m src.main inductive --mode softmax --beta 1.0 --n_rounds 200
-
-# Recency-weighted with exponential forgetting
+# Recency: exponentially decayed scoring
 python -m src.main inductive --mode recency --lambda_decay 0.95 --n_rounds 200
 ```
 
 **Heterogeneous populations:**
 
 ```bash
-# Mixed best/softmax/random
-python -m src.main heterogeneous --mode mix --p_best 0.4 --p_softmax 0.4 --p_random 0.2
+# Mixed inductive/random
+python -m src.main heterogeneous --mode mix --p_inductive 0.8 --p_random 0.2
 
 # Producer/speculator split
 python -m src.main heterogeneous --mode producer_speculator --n_producers 50
@@ -137,10 +134,8 @@ See `docs/game_definition.md` for full definitions, proofs, and theoretical anal
 - `FixedAttendanceAgent`: Fixed prediction-based decision
 - `ProducerAgent`: Non-adaptive noisy threshold predictor
 
-**Predictor-based inductive agents:**
-- `BestPredictorAgent`: Hard argmax over predictor scores (Arthur-inspired)
-- `SoftmaxPredictorAgent`: Boltzmann selection with temperature parameter β
-- `RecencyWeightedPredictorAgent`: Exponential score decay for faster adaptation to regime changes
+**Inductive predictor agent:**
+- `InductivePredictorAgent`: Hard argmax over predictor scores, with pluggable score updater
 
 ### Predictor Library
 
@@ -155,25 +150,28 @@ These are **Arthur-inspired inductive heuristics**, not a reconstruction of any 
 
 ### Score Update Rules
 
-**Cumulative scoring (Best, Softmax):**
+Two modes based on memory treatment:
 
-$$s_{ij}(t+1) = s_{ij}(t) - |\hat{A}_{ij}(t) - A_t|$$
+**Non-recency (cumulative scoring):**
 
-**Recency-weighted scoring (Recency):**
+$$s_j(t+1) = s_j(t) - |\hat{A}_j(t) - A_t|$$
 
-$$s_{ij}(t+1) = \lambda \cdot s_{ij}(t) - |\hat{A}_{ij}(t) - A_t|, \quad \lambda \in (0,1]$$
+**Recency (exponentially decayed scoring):**
+
+$$s_j(t+1) = \lambda \cdot s_j(t) - |\hat{A}_j(t) - A_t|, \quad \lambda \in (0,1]$$
 
 Lower λ = faster forgetting of past performance.
+
+Both modes use the same predictor bank, same action rule (hard argmax), and same repeated-game engine. The only difference is whether old predictor performance is exponentially forgotten.
 
 ### Experiment Runners
 
 ```bash
 python -m src.experiments.run_repeated_baselines --n_rounds 200 --output_dir outputs/baselines
-python -m src.experiments.run_inductive --mode best --n_rounds 200 --output_dir outputs/inductive
-python -m src.experiments.run_inductive --mode softmax --beta 1.0 --n_rounds 200
-python -m src.experiments.run_heterogeneous --mode mix --p_best 0.4 --p_softmax 0.4 --p_random 0.2 --n_rounds 200
+python -m src.experiments.run_inductive --mode non_recency --n_rounds 200 --output_dir outputs/inductive
+python -m src.experiments.run_inductive --mode recency --lambda_decay 0.95 --n_rounds 200
+python -m src.experiments.run_heterogeneous --mode mix --p_inductive 0.8 --p_random 0.2 --n_rounds 200
 python -m src.experiments.run_heterogeneous --mode producer_speculator --n_producers 50 --n_rounds 200
-python -m src.experiments.run_case_study --output_dir outputs/case_study
 ```
 
 Each experiment writes `rounds.csv`, `players.csv`, `summary.csv` plus figures into its `--output_dir`.

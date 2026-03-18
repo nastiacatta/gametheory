@@ -1,11 +1,21 @@
 """
-Run repeated-game experiments with inductive strategies (best, softmax, recency).
+Run repeated-game experiments with inductive strategies (non_recency, recency).
+
+Two modes based on memory treatment:
+  - non_recency: s_j(t+1) = s_j(t) - |forecast_j(t) - A_t|
+  - recency:     s_j(t+1) = lambda * s_j(t) - |forecast_j(t) - A_t|
+
+Both use the same predictor bank, same action rule (hard argmax), same
+repeated-game engine. The only difference is whether old predictor performance
+is exponentially forgotten.
 """
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
+
+import pandas as pd
 
 from src.analysis.metrics import compute_all_metrics
 from src.analysis.plots import (
@@ -22,23 +32,32 @@ from src.analysis.plots import (
 )
 from src.config import RepeatedGameConfig
 from src.experiments.populations import (
-    build_homogeneous_best_predictor,
+    build_homogeneous_non_recency,
     build_homogeneous_recency,
-    build_homogeneous_softmax,
 )
 from src.game.repeated_game import RepeatedMinorityGame
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["best", "softmax", "recency"], required=True)
+    parser = argparse.ArgumentParser(
+        description="Inductive repeated game: non_recency vs recency",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["non_recency", "recency"],
+        required=True,
+        help="Score update rule: cumulative (non_recency) or exponentially decayed (recency)",
+    )
     parser.add_argument("--n_players", type=int, default=101)
     parser.add_argument("--threshold", type=int, default=60)
     parser.add_argument("--n_rounds", type=int, default=200)
-    parser.add_argument("--beta", type=float, default=1.0, help="Softmax/recency inverse temperature")
-    parser.add_argument("--lambda_decay", type=float, default=0.95, help="Score decay factor for recency mode")
-    parser.add_argument("--selection", choices=["argmax", "softmax"], default="argmax", help="Selection rule for recency mode")
-    parser.add_argument("--predictors_per_agent", type=int, default=6, help="Number of predictors per agent")
+    parser.add_argument(
+        "--lambda_decay",
+        type=float,
+        default=0.95,
+        help="Score decay factor for recency mode (ignored for non_recency)",
+    )
+    parser.add_argument("--predictors_per_agent", type=int, default=6)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output_dir", type=str, default="outputs/inductive")
     args = parser.parse_args()
@@ -50,25 +69,19 @@ def main() -> None:
         seed=args.seed,
     )
 
-    if args.mode == "best":
-        agents = build_homogeneous_best_predictor(
-            config.n_players, predictors_per_agent=args.predictors_per_agent, seed=config.seed
-        )
-    elif args.mode == "softmax":
-        agents = build_homogeneous_softmax(
-            config.n_players, beta=args.beta, predictors_per_agent=args.predictors_per_agent, seed=config.seed
-        )
-    elif args.mode == "recency":
-        agents = build_homogeneous_recency(
+    if args.mode == "non_recency":
+        agents = build_homogeneous_non_recency(
             config.n_players,
-            lambda_decay=args.lambda_decay,
-            selection=args.selection,
-            beta=args.beta,
             predictors_per_agent=args.predictors_per_agent,
             seed=config.seed,
         )
     else:
-        raise ValueError(f"Unknown mode: {args.mode}")
+        agents = build_homogeneous_recency(
+            config.n_players,
+            lambda_decay=args.lambda_decay,
+            predictors_per_agent=args.predictors_per_agent,
+            seed=config.seed,
+        )
 
     game = RepeatedMinorityGame(
         n_players=config.n_players,
@@ -94,13 +107,15 @@ def main() -> None:
         predictor_histories=use_histories,
     )
 
-    out = Path(args.output_dir)
+    out = Path(args.output_dir) / args.mode
     out.mkdir(parents=True, exist_ok=True)
 
     result.rounds_dataframe().to_csv(out / "rounds.csv", index=False)
-    result.players_dataframe().to_csv(out / "players.csv", index=False)
 
-    import pandas as pd
+    player_df = result.players_dataframe().copy()
+    player_df["agent_type"] = [type(a).__name__ for a in agents]
+    player_df.to_csv(out / "players.csv", index=False)
+
     pd.DataFrame([metrics]).to_csv(out / "summary.csv", index=False)
 
     plot_attendance_over_time(

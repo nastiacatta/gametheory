@@ -4,7 +4,7 @@ Unified CLI for the El Farol threshold minority game.
 Subcommands:
     static      - Single-shot game
     repeated    - Repeated game with basic populations
-    inductive   - Repeated game with inductive agents (best, softmax, recency, turnover)
+    inductive   - Repeated game with inductive agents (non_recency, recency)
     heterogeneous - Repeated game with mixed populations
     sweep       - Parameter sweep over multiple seeds and modes
 
@@ -38,11 +38,9 @@ from src.experiments.populations import (
     build_fixed_predictor_population,
     build_heterogeneous,
     build_heterogeneous_fixed_predictor,
-    build_homogeneous_best_predictor,
     build_homogeneous_fixed_predictor,
+    build_homogeneous_non_recency,
     build_homogeneous_recency,
-    build_homogeneous_softmax,
-    build_homogeneous_turnover,
     build_producer_speculator,
 )
 from src.experiments.run_repeated_fixed_strategy import bootstrap_history
@@ -136,7 +134,6 @@ def run_repeated(args: argparse.Namespace) -> None:
     )
     agents = build_basic_agents(args)
 
-    # Use bootstrap history for fixed_predictor populations
     init_history = None
     if args.population in ("fixed_predictor", "homogeneous_fixed_predictor", "heterogeneous_fixed_predictor"):
         init_history = bootstrap_history(
@@ -169,7 +166,7 @@ def run_repeated(args: argparse.Namespace) -> None:
 
 
 def run_inductive(args: argparse.Namespace) -> None:
-    """Run repeated game with inductive agents."""
+    """Run repeated game with inductive agents (non_recency or recency)."""
     config = RepeatedGameConfig(
         n_players=args.n_players,
         threshold=args.threshold,
@@ -177,39 +174,19 @@ def run_inductive(args: argparse.Namespace) -> None:
         seed=args.seed,
     )
 
-    if args.mode == "best":
-        agents = build_homogeneous_best_predictor(
+    if args.mode == "non_recency":
+        agents = build_homogeneous_non_recency(
             config.n_players,
-            predictors_per_agent=args.predictors_per_agent,
-            seed=config.seed,
-        )
-    elif args.mode == "softmax":
-        agents = build_homogeneous_softmax(
-            config.n_players,
-            beta=args.beta,
-            predictors_per_agent=args.predictors_per_agent,
-            seed=config.seed,
-        )
-    elif args.mode == "recency":
-        agents = build_homogeneous_recency(
-            config.n_players,
-            lambda_decay=args.lambda_decay,
-            selection=args.selection,
-            beta=args.beta,
-            predictors_per_agent=args.predictors_per_agent,
-            seed=config.seed,
-        )
-    elif args.mode == "turnover":
-        agents = build_homogeneous_turnover(
-            config.n_players,
-            lambda_decay=args.lambda_decay,
-            patience=args.patience,
-            error_threshold=args.error_threshold,
             predictors_per_agent=args.predictors_per_agent,
             seed=config.seed,
         )
     else:
-        raise ValueError(f"Unknown inductive mode: {args.mode}")
+        agents = build_homogeneous_recency(
+            config.n_players,
+            lambda_decay=args.lambda_decay,
+            predictors_per_agent=args.predictors_per_agent,
+            seed=config.seed,
+        )
 
     game = RepeatedMinorityGame(
         n_players=config.n_players,
@@ -236,11 +213,11 @@ def run_inductive(args: argparse.Namespace) -> None:
     out.mkdir(parents=True, exist_ok=True)
 
     result.rounds_dataframe().to_csv(out / "rounds.csv", index=False)
-    
+
     player_df = result.players_dataframe().copy()
     player_df["agent_type"] = [type(a).__name__ for a in agents]
     player_df.to_csv(out / "players.csv", index=False)
-    
+
     pd.DataFrame([metrics]).to_csv(out / "summary.csv", index=False)
 
     plot_attendance_over_time(result.attendance_history, config.threshold, out / "attendance.png")
@@ -271,21 +248,21 @@ def run_heterogeneous(args: argparse.Namespace) -> None:
     )
 
     if args.mode == "mix":
+        lambda_decay = args.lambda_decay if args.use_recency else None
         agents = build_heterogeneous(
             config.n_players,
-            p_best=args.p_best,
-            p_softmax=args.p_softmax,
+            p_inductive=args.p_inductive,
             p_random=args.p_random,
-            beta=args.beta,
+            lambda_decay=lambda_decay,
             predictors_per_agent=args.predictors_per_agent,
             seed=config.seed,
         )
     elif args.mode == "producer_speculator":
+        lambda_decay = args.lambda_decay if args.use_recency else None
         agents = build_producer_speculator(
             config.n_players,
             n_producers=args.n_producers,
-            speculator_type=args.speculator_type,
-            beta=args.beta,
+            lambda_decay=lambda_decay,
             predictors_per_agent=args.predictors_per_agent,
             seed=config.seed,
             producer_base_prediction=args.producer_base_prediction,
@@ -347,7 +324,7 @@ def run_sweep(args: argparse.Namespace) -> None:
     """Run multi-seed parameter sweep."""
     from src.experiments.run_sweep import main as sweep_main
     import sys
-    
+
     sys.argv = [
         "run_sweep",
         f"--n_players={args.n_players}",
@@ -362,12 +339,12 @@ def run_sweep(args: argparse.Namespace) -> None:
 def run_static_sweep(args: argparse.Namespace) -> None:
     """Run static probability sweep experiment."""
     from src.experiments.run_static_probability_sweep import run_probability_sweep
-    
+
     print(f"Running static probability sweep...")
     print(f"  n_players={args.n_players}, threshold={args.threshold}")
     print(f"  n_samples={args.n_samples}, grid_size={args.grid_size}")
     print(f"  seed={args.seed}")
-    
+
     df = run_probability_sweep(
         n_players=args.n_players,
         threshold=args.threshold,
@@ -376,7 +353,7 @@ def run_static_sweep(args: argparse.Namespace) -> None:
         seed=args.seed,
         output_dir=args.output_dir,
     )
-    
+
     out_path = Path(args.output_dir).resolve()
     print(f"\nOutputs saved to: {out_path}")
     print(f"  - tables/static_probability_sweep.csv")
@@ -384,7 +361,7 @@ def run_static_sweep(args: argparse.Namespace) -> None:
     print(f"  - figures/static_attendance_vs_p.png")
     print(f"  - figures/static_overcrowding_vs_p.png")
     print(f"  - figures/static_counts_vs_p.png")
-    
+
     p_capacity = args.threshold / args.n_players
     idx = (df["p"] - p_capacity).abs().idxmin()
     row = df.iloc[idx]
@@ -434,19 +411,28 @@ def build_parser() -> argparse.ArgumentParser:
     repeated_parser.add_argument("--predictor_name", type=str, default="last_value")
 
     # === inductive ===
-    inductive_parser = subparsers.add_parser("inductive", help="Repeated game with inductive agents")
-    inductive_parser.add_argument("--mode", choices=["best", "softmax", "recency", "turnover"], required=True)
+    inductive_parser = subparsers.add_parser(
+        "inductive",
+        help="Repeated game with inductive agents (non_recency, recency)",
+    )
+    inductive_parser.add_argument(
+        "--mode",
+        choices=["non_recency", "recency"],
+        required=True,
+        help="Score update rule: cumulative (non_recency) or exponentially decayed (recency)",
+    )
     inductive_parser.add_argument("--n_players", type=int, default=101)
     inductive_parser.add_argument("--threshold", type=int, default=60)
     inductive_parser.add_argument("--n_rounds", type=int, default=200)
     inductive_parser.add_argument("--seed", type=int, default=42)
     inductive_parser.add_argument("--output_dir", type=str, default="outputs/inductive")
     inductive_parser.add_argument("--predictors_per_agent", type=int, default=6)
-    inductive_parser.add_argument("--beta", type=float, default=1.0, help="Inverse temperature (softmax/recency)")
-    inductive_parser.add_argument("--lambda_decay", type=float, default=0.95, help="Score decay (recency/turnover)")
-    inductive_parser.add_argument("--selection", choices=["argmax", "softmax"], default="argmax", help="Selection rule (recency)")
-    inductive_parser.add_argument("--patience", type=int, default=10, help="Failure patience (turnover)")
-    inductive_parser.add_argument("--error_threshold", type=float, default=5.0, help="Error threshold (turnover)")
+    inductive_parser.add_argument(
+        "--lambda_decay",
+        type=float,
+        default=0.95,
+        help="Score decay factor for recency mode (ignored for non_recency)",
+    )
 
     # === heterogeneous ===
     hetero_parser = subparsers.add_parser("heterogeneous", help="Repeated game with mixed populations")
@@ -457,12 +443,11 @@ def build_parser() -> argparse.ArgumentParser:
     hetero_parser.add_argument("--seed", type=int, default=42)
     hetero_parser.add_argument("--output_dir", type=str, default="outputs/heterogeneous")
     hetero_parser.add_argument("--predictors_per_agent", type=int, default=6)
-    hetero_parser.add_argument("--beta", type=float, default=1.0)
-    hetero_parser.add_argument("--p_best", type=float, default=0.5)
-    hetero_parser.add_argument("--p_softmax", type=float, default=0.5)
-    hetero_parser.add_argument("--p_random", type=float, default=0.0)
+    hetero_parser.add_argument("--lambda_decay", type=float, default=0.95, help="Score decay (if use_recency)")
+    hetero_parser.add_argument("--use_recency", action="store_true", help="Use recency scoring for inductive agents")
+    hetero_parser.add_argument("--p_inductive", type=float, default=0.8)
+    hetero_parser.add_argument("--p_random", type=float, default=0.2)
     hetero_parser.add_argument("--n_producers", type=int, default=50)
-    hetero_parser.add_argument("--speculator_type", choices=["best", "softmax"], default="best")
     hetero_parser.add_argument("--producer_base_prediction", type=float, default=None)
     hetero_parser.add_argument("--producer_noise_std", type=float, default=5.0)
 
