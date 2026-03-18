@@ -2,8 +2,8 @@
 Repeated El Farol threshold game: same agents over m rounds, cumulative payoffs.
 
 Provides summary statistics, DataFrames for rounds/players, and optional
-CSV/plot output for report-ready analysis. Uses strict threshold payoff
-convention (A < L for positive payoff).
+CSV/plot output for report-ready analysis. Uses weak threshold payoff
+convention (A <= L for positive payoff).
 """
 
 from __future__ import annotations

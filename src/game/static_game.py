@@ -2,7 +2,7 @@
 Single-shot (static) El Farol threshold game: one round, no learning.
 
 Returns per-player actions and payoffs for a given (n, L) and agent list.
-Uses strict threshold payoff convention (A < L for positive payoff).
+Uses weak threshold payoff convention (A <= L for positive payoff).
 """
 
 from __future__ import annotations

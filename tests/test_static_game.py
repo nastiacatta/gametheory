@@ -42,7 +42,7 @@ def test_static_game_accepts_even_n() -> None:
     assert result.attendance == 0
 
 
-def test_static_game_at_threshold_is_overcrowded() -> None:
+def test_static_game_at_threshold_not_overcrowded() -> None:
     agents = [
         DeterministicAgent(1),
         DeterministicAgent(1),
@@ -52,7 +52,7 @@ def test_static_game_at_threshold_is_overcrowded() -> None:
     result = game.play()
 
     assert result.attendance == 2
-    assert result.overcrowded is True
-    assert result.payoffs == [-1, -1, 0]
-    assert result.winners == []
-    assert result.losers == [0, 1]
+    assert result.overcrowded is False
+    assert result.payoffs == [1, 1, 0]
+    assert result.winners == [0, 1]
+    assert result.losers == []

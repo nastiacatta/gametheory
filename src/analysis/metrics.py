@@ -1,8 +1,18 @@
 """
-Analysis metrics for the repeated minority game.
+Analysis metrics for the repeated El Farol threshold game.
 
-Threshold-centred observables (σ²_L, MAD_L, OvercrowdingRate) and
-payoff-side metrics (mean, std, switch rate).
+Threshold-centred observables:
+  - σ²_L = (1/T) Σ (A_t - L)² (variance from threshold)
+  - MAD_L = (1/T) Σ |A_t - L| (mean absolute deviation from threshold)
+  - OvercrowdingRate = (1/T) Σ 1[A_t > L] (weak threshold: overcrowded when A > L)
+
+Payoff-side metrics:
+  - Mean cumulative payoff
+  - Standard deviation of cumulative payoffs
+  - Predictor switch rate (for inductive agents)
+
+Note: σ²_L is threshold-deviation volatility, distinct from canonical
+Minority Game volatility σ² = (1/T) Σ A_t².
 """
 
 from __future__ import annotations

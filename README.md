@@ -50,20 +50,20 @@ Outputs (CSVs and figures) are written to `--output_dir`. The repeated runner wr
 - `repeated_summary.csv`: summary metrics (threshold-centred deviation measures)
 - `attendance_over_time.png`, `cumulative_average_attendance.png`
 
-## Game Definition (Strict Threshold)
+## Game Definition (Weak Threshold)
 
-This implementation uses the **strict threshold** convention:
+This implementation uses the **weak threshold** convention:
 
 - Each player chooses **attend** (1) or **stay home** (0).
 - Let \(A = \sum_i a_i\) be total attendance and \(L\) be the capacity threshold.
 - Payoffs:
-  - If \(A < L\): attendees receive \(+1\).
-  - If \(A \ge L\): attendees receive \(-1\).
+  - If \(A \le L\): attendees receive \(+1\).
+  - If \(A > L\): attendees receive \(-1\).
   - Stay home: \(0\) (neutral).
 
-**Pure-strategy Nash equilibria:** Exactly the profiles with \(A = L - 1\). There are \(\binom{n}{L-1}\) such equilibria.
+**Pure-strategy Nash equilibria:** Exactly the profiles with \(A = L\). There are \(\binom{n}{L}\) such equilibria.
 
-**Symmetric mixed equilibrium:** The equilibrium probability \(p^*\) satisfies \(\Pr(X \le L-2) = 1/2\) where \(X \sim \mathrm{Bin}(n-1, p^*)\).
+**Symmetric mixed equilibrium:** The equilibrium probability \(p^*\) satisfies \(\Pr(X \le L-1) = 1/2\) where \(X \sim \mathrm{Bin}(n-1, p^*)\).
 
 See `docs/game_definition.md` for full definitions, proofs, and theoretical analysis.
 
@@ -90,7 +90,7 @@ Each experiment writes `rounds.csv`, `players.csv`, `summary.csv` plus figures i
 **Threshold-centred metrics:**
 - Variance from threshold: \(\sigma_L^2 = \frac{1}{T} \sum_t (A_t - L)^2\)
 - MAD from threshold: \(\mathrm{MAD}_L = \frac{1}{T} \sum_t |A_t - L|\)
-- Overcrowding rate: fraction of rounds with \(A_t \ge L\)
+- Overcrowding rate: fraction of rounds with \(A_t > L\)
 
 **Payoff metrics:**
 - Mean cumulative payoff
@@ -150,7 +150,7 @@ Tests cover payoff logic, configs, population builders, experiment runners, the 
 │   │   ├── run_inductive.py
 │   │   └── run_heterogeneous.py
 │   └── game/
-│       ├── payoff.py           # Stage payoff (strict threshold)
+│       ├── payoff.py           # Stage payoff (weak threshold)
 │       ├── static_game.py      # Single-shot game
 │       └── repeated_game.py
 ├── tests/

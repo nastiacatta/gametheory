@@ -30,7 +30,7 @@ A(\mathbf{a}) = \sum_{i=1}^{n} a_i
 
 ### 1.2 Payoff Function (Weak Threshold Convention)
 
-This implementation uses the **weak threshold** convention, where the bar is enjoyable when attendance is *at or below* capacity:
+This implementation uses the **weak threshold** convention:
 
 \[
 u_i(\mathbf{a}) =
@@ -42,11 +42,11 @@ u_i(\mathbf{a}) =
 \]
 
 **Interpretation:**
-- Attendees receive payoff \(+1\) if at most \(L\) people attend.
-- Attendees receive payoff \(-1\) when the bar is over capacity.
+- Attendees receive payoff \(+1\) if at most \(L\) people attend (capacity not exceeded).
+- Attendees receive payoff \(-1\) when attendance exceeds capacity.
 - Staying home yields a neutral payoff of \(0\).
 
-**Remark.** Some formulations use a strict inequality (\(A < L\)) for the positive payoff. This shifts equilibrium attendance by one. This repository uses the weak inequality (\(A \le L\)) throughout.
+**Remark.** Some formulations (including Arthur's original El Farol description) use a strict inequality (\(A < L\)) for the positive payoff. The choice affects equilibrium attendance by one unit. This repository uses the weak inequality (\(A \le L\)) throughout.
 
 ---
 
@@ -64,7 +64,7 @@ u_i(\mathbf{a}) =
 
 3. **\(A = L\) is stable:**
    - Every attendee receives \(+1\). Deviating to stay home yields \(0\), which is worse.
-   - Every non-attendee receives \(0\). Deviating to attend gives \(A' = L + 1\), yielding payoff \(-1\), which is worse.
+   - Every non-attendee receives \(0\). Deviating to attend gives \(A' = L + 1 > L\), yielding payoff \(-1\), which is worse.
 
 **Corollary.** There are exactly \(\binom{n}{L}\) pure-strategy Nash equilibria, corresponding to all ways of selecting \(L\) players to attend.
 
@@ -84,7 +84,7 @@ For player \(i\), let \(X = \sum_{j \ne i} a_j \sim \mathrm{Bin}(n - 1, p)\) den
 
 The expected payoff from attending is:
 \[
-\mathbb{E}[u_i(1)] = \Pr(X \le L - 1) \cdot (+1) + \Pr(X > L - 1) \cdot (-1)
+\mathbb{E}[u_i(1)] = \Pr(X + 1 \le L) \cdot (+1) + \Pr(X + 1 > L) \cdot (-1)
 \]
 \[
 = \Pr(X \le L - 1) - \Pr(X \ge L)
@@ -167,7 +167,7 @@ Ties are broken in favour of the lowest-index predictor.
 \Pr(j \mid t) = \frac{\exp(\beta \, s_{ij}(t))}{\sum_{\ell} \exp(\beta \, s_{i\ell}(t))},
 \]
 
-where \(\beta \ge 0\) is the inverse temperature. The agent attends if the selected predictor forecasts attendance at or below \(L\).
+where \(\beta \ge 0\) is the inverse temperature. The agent attends if the selected predictor forecasts attendance at most \(L\).
 
 - \(\beta = 0\): uniform random selection (pure exploration).
 - \(\beta \to \infty\): hard argmax (pure exploitation).
