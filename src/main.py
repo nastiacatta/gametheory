@@ -23,9 +23,9 @@ def build_agents(args: argparse.Namespace) -> List[BaseAgent]:
     Build agent population based on CLI arguments.
 
     Populations:
-    - random: all RandomAgent with p_attend
+    - random: all RandomAgent with p_attend (default for static)
     - fixed: all FixedAttendanceAgent with predicted_attendance
-    - mixed: half random, half fixed (default)
+    - mixed: half random, half fixed (default for repeated)
     """
     n_players = args.n_players
 
@@ -115,7 +115,7 @@ def build_parser() -> argparse.ArgumentParser:
     static_parser.add_argument("--n_players", type=int, default=101)
     static_parser.add_argument("--threshold", type=int, default=60)
     static_parser.add_argument("--seed", type=int, default=42)
-    static_parser.add_argument("--population", choices=["random", "fixed", "mixed"], default="mixed")
+    static_parser.add_argument("--population", choices=["random", "fixed", "mixed"], default="random")
     static_parser.add_argument("--p_attend", type=float, default=0.55)
     static_parser.add_argument("--predicted_attendance", type=int, default=58)
 

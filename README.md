@@ -88,7 +88,7 @@ Each experiment writes `rounds.csv`, `players.csv`, `summary.csv` plus figures i
 ## Analysis Metrics
 
 **Threshold-centred metrics:**
-- Variance from threshold: \(\sigma_L^2 = \frac{1}{T} \sum_t (A_t - L)^2\)
+- Mean squared deviation from threshold: \(\sigma_L^2 = \frac{1}{T} \sum_t (A_t - L)^2\)
 - MAD from threshold: \(\mathrm{MAD}_L = \frac{1}{T} \sum_t |A_t - L|\)
 - Overcrowding rate: fraction of rounds with \(A_t > L\)
 

@@ -4,7 +4,7 @@ Producer (non-adaptive) agent for heterogeneous population experiments.
 Models agents whose attendance decision is independent of past attendance
 dynamics — analogous to 'producers' in the ecology framing of markets.
 Each round the agent forms a noisy prediction of attendance and attends
-if that prediction falls below the threshold.
+if that prediction is at most the threshold.
 """
 
 from __future__ import annotations
