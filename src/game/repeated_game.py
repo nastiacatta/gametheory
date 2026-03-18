@@ -20,9 +20,12 @@ from src.analysis.metrics import compute_all_metrics
 from src.analysis.plots import (
     plot_attendance_over_time,
     plot_attendance_deviation_over_time,
+    plot_cumulative_average_attendance,
     plot_rolling_variance_from_threshold,
     plot_threshold_distance_histogram,
+    plot_attendance_histogram,
     plot_payoff_histogram,
+    plot_ranked_final_payoffs,
 )
 from src.game.payoff import build_stage_outcome
 
@@ -102,6 +105,11 @@ class RepeatedGameResult:
             self.threshold,
             output_path / "attendance_deviation_over_time.png",
         )
+        plot_cumulative_average_attendance(
+            self.attendance_history,
+            self.threshold,
+            output_path / "cumulative_average_attendance.png",
+        )
         plot_rolling_variance_from_threshold(
             self.attendance_history,
             self.threshold,
@@ -113,9 +121,18 @@ class RepeatedGameResult:
             self.threshold,
             output_path / "attendance_deviation_histogram.png",
         )
+        plot_attendance_histogram(
+            self.attendance_history,
+            self.threshold,
+            output_path / "attendance_histogram.png",
+        )
         plot_payoff_histogram(
             self.cumulative_payoffs,
             output_path / "payoff_histogram.png",
+        )
+        plot_ranked_final_payoffs(
+            self.cumulative_payoffs,
+            output_path / "ranked_final_payoffs.png",
         )
 
 

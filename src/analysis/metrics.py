@@ -2,7 +2,7 @@
 Analysis metrics for the repeated El Farol threshold game.
 
 Threshold-centred observables:
-  - σ²_L = (1/T) Σ (A_t - L)² (variance from threshold)
+  - σ²_L = (1/T) Σ (A_t - L)² (mean squared deviation from threshold)
   - MAD_L = (1/T) Σ |A_t - L| (mean absolute deviation from threshold)
   - OvercrowdingRate = (1/T) Σ 1[A_t > L] (weak threshold: overcrowded when A > L)
 
@@ -43,10 +43,8 @@ def mad_from_threshold(attendance_history: List[int], threshold: int) -> float:
 
 
 def overcrowding_rate(attendance_history: List[int], threshold: int) -> float:
-    """Fraction of rounds with A_t > L."""
-    arr = np.asarray(attendance_history, dtype=float)
-    if arr.size == 0:
-        return float("nan")
+    """Fraction of rounds with A_t > L under the weak-threshold convention."""
+    arr = np.array(attendance_history, dtype=float)
     return float(np.mean(arr > threshold))
 
 

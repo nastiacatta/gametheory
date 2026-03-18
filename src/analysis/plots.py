@@ -113,7 +113,10 @@ def plot_attendance_deviation_over_time(
     threshold: int,
     output_path: Optional[Path] = None,
 ) -> None:
-    """Plot A_t - L over time."""
+    """
+    Plot A_t - L over time. This is the most informative single-run plot
+    for the threshold game. Values above 0 are overcrowded rounds.
+    """
     if not attendance_history:
         return
 
@@ -121,12 +124,15 @@ def plot_attendance_deviation_over_time(
     deviation = np.asarray(attendance_history, dtype=float) - threshold
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(rounds, deviation, linewidth=1.5)
-    ax.axhline(0.0, linestyle="--", color="black")
+    ax.plot(rounds, deviation, linewidth=1.2, label=r"$A_t - L$")
+    ax.axhline(0.0, linestyle="--", color="black", linewidth=1.0)
+    ax.fill_between(rounds, 0, deviation, where=(deviation > 0), alpha=0.25, label="Overcrowded")
+    ax.fill_between(rounds, 0, deviation, where=(deviation <= 0), alpha=0.15, label="At/below capacity")
 
     ax.set_xlabel("Round")
-    ax.set_ylabel(r"$A_t - L$")
+    ax.set_ylabel(r"Deviation from threshold, $A_t - L$")
     ax.set_title("Attendance deviation from threshold")
+    ax.legend()
 
     fig.tight_layout()
     if output_path:
@@ -212,6 +218,59 @@ def plot_payoff_by_type(
     ax.set_xlabel("Agent type")
     ax.set_ylabel("Cumulative payoff")
     ax.set_title("Cumulative payoff by agent type")
+
+    fig.tight_layout()
+    if output_path:
+        fig.savefig(output_path, dpi=200)
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_ranked_final_payoffs(
+    cumulative_payoffs: List[int],
+    output_path: Optional[Path] = None,
+) -> None:
+    """Sorted final payoffs to show inequality across players."""
+    if not cumulative_payoffs:
+        return
+
+    ranked = np.sort(np.asarray(cumulative_payoffs))[::-1]
+    players = np.arange(1, len(ranked) + 1)
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(players, ranked, linewidth=1.4)
+
+    ax.set_xlabel("Player rank")
+    ax.set_ylabel("Final cumulative payoff")
+    ax.set_title("Ranked final cumulative payoffs")
+
+    fig.tight_layout()
+    if output_path:
+        fig.savefig(output_path, dpi=200)
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_attendance_histogram(
+    attendance_history: List[int],
+    threshold: int,
+    output_path: Optional[Path] = None,
+) -> None:
+    """Distribution of attendance across rounds."""
+    if not attendance_history:
+        return
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    bins = np.arange(min(attendance_history), max(attendance_history) + 2) - 0.5
+    ax.hist(attendance_history, bins=bins, edgecolor="black", alpha=0.75)
+    ax.axvline(threshold, linestyle="--", color="gray", label=f"L = {threshold}")
+
+    ax.set_xlabel("Attendance")
+    ax.set_ylabel("Count")
+    ax.set_title("Attendance distribution across rounds")
+    ax.legend()
 
     fig.tight_layout()
     if output_path:

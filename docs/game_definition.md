@@ -231,7 +231,7 @@ Any comparison to canonical MG results should be made with care. The inductive a
 
 The primary analysis metrics are centred on the threshold \(L\), reflecting the El Farol model structure:
 
-**Variance from threshold:**
+**Mean squared deviation from threshold:**
 \[
 \sigma_L^2 = \frac{1}{T} \sum_{t=1}^{T} (A_t - L)^2
 \]

@@ -11,9 +11,12 @@ from src.analysis.metrics import compute_all_metrics
 from src.analysis.plots import (
     plot_attendance_over_time,
     plot_attendance_deviation_over_time,
+    plot_cumulative_average_attendance,
     plot_rolling_variance_from_threshold,
     plot_threshold_distance_histogram,
+    plot_attendance_histogram,
     plot_payoff_histogram,
+    plot_ranked_final_payoffs,
     plot_predictor_share_over_time,
 )
 from src.config import RepeatedGameConfig
@@ -96,6 +99,12 @@ def main() -> None:
         out / "attendance_deviation.png",
     )
 
+    plot_cumulative_average_attendance(
+        result.attendance_history,
+        config.threshold,
+        out / "cum_avg_attendance.png",
+    )
+
     plot_rolling_variance_from_threshold(
         result.attendance_history,
         config.threshold,
@@ -109,9 +118,20 @@ def main() -> None:
         out / "attendance_deviation_hist.png",
     )
 
+    plot_attendance_histogram(
+        result.attendance_history,
+        config.threshold,
+        out / "attendance_hist.png",
+    )
+
     plot_payoff_histogram(
         result.cumulative_payoffs,
         out / "payoff_hist.png",
+    )
+
+    plot_ranked_final_payoffs(
+        result.cumulative_payoffs,
+        out / "ranked_final_payoffs.png",
     )
 
     if use_histories:
