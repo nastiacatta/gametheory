@@ -1,5 +1,5 @@
 """
-Temperature-based predictor-selection agent (Arthur-inspired stochastic selection).
+Temperature-based predictor-selection agent with virtual-payoff scoring.
 
 Same predictor bank and scoring as BestPredictorAgent, but the active
 predictor is chosen stochastically via a Boltzmann / softmax distribution:
@@ -11,7 +11,9 @@ beta -> inf  =>  hard argmax         (pure exploitation)
 
 Agent attends iff the chosen predictor forecasts attendance <= threshold.
 
-Inspired by predictor-based inductive strategies; not an exact replication.
+Scores are updated using virtual payoff: each predictor is scored by the
+payoff it would have earned under the realised attendance, whether or not
+it was selected.
 """
 
 from __future__ import annotations
@@ -70,9 +72,16 @@ class SoftmaxPredictorAgent(BaseAgent):
         realised_attendance: int,
         payoff: int,
     ) -> None:
-        _ = context, action, payoff
+        _ = action, payoff
+        overcrowded = realised_attendance > context.threshold
         for j, pred in enumerate(self._last_predictions):
-            self.scores[j] -= abs(pred - realised_attendance)
+            implied_action = int(pred <= context.threshold)
+            hypothetical_payoff = (
+                1 if (implied_action == 1 and not overcrowded)
+                or (implied_action == 0 and overcrowded)
+                else -1
+            )
+            self.scores[j] += hypothetical_payoff
 
     def reset(self) -> None:
         self.scores = [0.0] * len(self.predictors)

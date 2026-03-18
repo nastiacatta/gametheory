@@ -1,21 +1,23 @@
 """
-Turnover predictor agent with hypothesis replacement (Arthur-style).
+Turnover predictor agent with hypothesis replacement and virtual-payoff scoring.
 
 This agent implements a closer approximation to Arthur's (1994) description
 of inductive reasoning:
   - Agents hold k predictors (hypotheses) and track their performance
   - After each round, scores are updated with exponential decay
-  - If the active predictor underperforms for `patience` consecutive rounds,
+  - If the active predictor fails for `patience` consecutive rounds,
     the worst-scoring predictor is discarded and replaced with a new one
     sampled from the master library
 
-Score update:
-    s_{ij}(t+1) = lambda * s_{ij}(t) - |forecast_j(t) - A_t|
+Score update (virtual payoff with decay):
+    s_{ij}(t+1) = lambda * s_{ij}(t) + u(implied_action_j, A_t)
+
+where u = +1 if the implied action would have won, -1 otherwise.
 
 Turnover rule:
-    If active predictor has been wrong (|error| > error_threshold) for
-    `patience` consecutive rounds, replace the worst-scoring predictor
-    with a fresh sample from the master library.
+    If active predictor would have earned -1 payoff for `patience`
+    consecutive rounds, replace the worst-scoring predictor with a
+    fresh sample from the master library.
 
 This creates a population of predictors that evolves over time,
 discarding poor performers and exploring new hypotheses.
@@ -149,19 +151,29 @@ class TurnoverPredictorAgent(BaseAgent):
         payoff: int,
         rng: Optional[np.random.Generator] = None,
     ) -> None:
-        """Update scores with decay and potentially replace worst predictor."""
-        _ = context, action, payoff
+        """Update scores with decay and virtual payoffs, potentially replace worst predictor."""
+        _ = action, payoff
+        overcrowded = realised_attendance > context.threshold
         
         for j, pred in enumerate(self._last_predictions):
             decayed = self.lambda_decay * self.scores[j]
-            error = abs(pred - realised_attendance)
-            self.scores[j] = decayed - error
+            implied_action = int(pred <= context.threshold)
+            hypothetical_payoff = (
+                1 if (implied_action == 1 and not overcrowded)
+                or (implied_action == 0 and overcrowded)
+                else -1
+            )
+            self.scores[j] = decayed + hypothetical_payoff
         
-        active_error = abs(
-            self._last_predictions[self._active_idx] - realised_attendance
+        active_pred = self._last_predictions[self._active_idx]
+        active_implied = int(active_pred <= context.threshold)
+        active_payoff = (
+            1 if (active_implied == 1 and not overcrowded)
+            or (active_implied == 0 and overcrowded)
+            else -1
         )
         
-        if active_error > self.error_threshold:
+        if active_payoff == -1:
             self._consecutive_failures += 1
         else:
             self._consecutive_failures = 0

@@ -1,14 +1,18 @@
 """
-Predictor-score best-predictor agent (hard argmax).
+Predictor-score best-predictor agent (hard argmax) with virtual-payoff scoring.
 
-Each agent holds a bank of attendance predictors and a cumulative accuracy
-score for each.  Every round it uses the predictor with the highest score
-to forecast attendance, then attends iff the forecast <= threshold.
+Each agent holds a bank of attendance predictors and a cumulative virtual
+payoff score for each. Every round it uses the predictor with the highest
+score to forecast attendance, then attends iff the forecast <= threshold.
 
-After the realised attendance is observed, all predictor scores are updated:
-    score_j  <-  score_j  -  |forecast_j - A_t|
+After the realised attendance is observed, all predictor scores are updated
+by the payoff they *would* have earned (virtual payoff):
+    score_j  <-  score_j  +  u(implied_action_j, A_t)
 
-Inspired by Arthur's predictor-based adaptation; not an exact replication.
+where u = +1 if the implied action would have won, -1 otherwise.
+
+This is closer to the Minority Game notion of virtual scores, where strategies
+are scored by whether they would have won, even if they were not actually played.
 """
 
 from __future__ import annotations
@@ -63,9 +67,16 @@ class BestPredictorAgent(BaseAgent):
         realised_attendance: int,
         payoff: int,
     ) -> None:
-        _ = context, action, payoff
+        _ = action, payoff
+        overcrowded = realised_attendance > context.threshold
         for j, pred in enumerate(self._last_predictions):
-            self.scores[j] -= abs(pred - realised_attendance)
+            implied_action = int(pred <= context.threshold)
+            hypothetical_payoff = (
+                1 if (implied_action == 1 and not overcrowded)
+                or (implied_action == 0 and overcrowded)
+                else -1
+            )
+            self.scores[j] += hypothetical_payoff
 
     def reset(self) -> None:
         self.scores = [0.0] * len(self.predictors)

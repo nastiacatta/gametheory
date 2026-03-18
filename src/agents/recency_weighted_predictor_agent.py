@@ -1,20 +1,19 @@
 """
-Recency-weighted predictor-selection agent with exponential forgetting.
+Recency-weighted predictor-selection agent with exponential forgetting and virtual-payoff scoring.
 
 Each agent holds a bank of attendance predictors with scores that decay
-over time, making the agent more responsive to recent forecast performance.
+over time, making the agent more responsive to recent performance.
 
-Score update rule:
-    s_{ij}(t+1) = lambda * s_{ij}(t) - |forecast_j(t) - A_t|
+Score update rule (virtual payoff with decay):
+    s_{ij}(t+1) = lambda * s_{ij}(t) + u(implied_action_j, A_t)
 
-where lambda in (0, 1] is the decay factor. Lower lambda means faster
-forgetting of past performance and quicker adaptation to regime changes.
+where lambda in (0, 1] is the decay factor, and u = +1 if the implied
+action would have won, -1 otherwise.
+
+Lower lambda means faster forgetting of past performance and quicker
+adaptation to regime changes.
 
 Selection: argmax or softmax over decayed scores.
-
-This agent is useful for environments where attendance patterns change
-over time, as it can adapt to new regimes more quickly than agents
-with cumulative (non-decaying) scores.
 """
 
 from __future__ import annotations
@@ -112,12 +111,18 @@ class RecencyWeightedPredictorAgent(BaseAgent):
         realised_attendance: int,
         payoff: int,
     ) -> None:
-        """Apply exponential decay and update scores with prediction errors."""
-        _ = context, action, payoff
+        """Apply exponential decay and update scores with virtual payoffs."""
+        _ = action, payoff
+        overcrowded = realised_attendance > context.threshold
         for j, pred in enumerate(self._last_predictions):
             decayed = self.lambda_decay * self.scores[j]
-            error = abs(pred - realised_attendance)
-            self.scores[j] = decayed - error
+            implied_action = int(pred <= context.threshold)
+            hypothetical_payoff = (
+                1 if (implied_action == 1 and not overcrowded)
+                or (implied_action == 0 and overcrowded)
+                else -1
+            )
+            self.scores[j] = decayed + hypothetical_payoff
 
     @property
     def active_predictor_name(self) -> str:

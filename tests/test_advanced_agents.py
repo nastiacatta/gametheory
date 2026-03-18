@@ -28,10 +28,10 @@ class TestRecencyWeightedPredictorAgent:
         assert agent.choose_action(ctx, rng) == 0
 
     def test_recency_scores_decay(self) -> None:
-        """Scores should decay by lambda_decay factor each round."""
+        """Scores should decay by lambda_decay factor each round with virtual payoffs."""
         predictors = [
-            ("good", lambda h, n, L: 60.0),
-            ("bad", lambda h, n, L: 80.0),
+            ("attend", lambda h, n, L: 60.0),
+            ("stay", lambda h, n, L: 80.0),
         ]
         lambda_decay = 0.8
         agent = RecencyWeightedPredictorAgent(predictors=predictors, lambda_decay=lambda_decay)
@@ -39,16 +39,16 @@ class TestRecencyWeightedPredictorAgent:
         rng = np.random.default_rng(42)
         
         agent.choose_action(ctx, rng)
-        agent.update(ctx, action=1, realised_attendance=60, payoff=1)
+        agent.update(ctx, action=1, realised_attendance=58, payoff=1)
         
-        assert agent.scores[0] == pytest.approx(0.8 * 0.0 - 0.0)
-        assert agent.scores[1] == pytest.approx(0.8 * 0.0 - 20.0)
+        assert agent.scores[0] == pytest.approx(0.8 * 0.0 + 1.0)
+        assert agent.scores[1] == pytest.approx(0.8 * 0.0 - 1.0)
         
         agent.choose_action(ctx, rng)
-        agent.update(ctx, action=1, realised_attendance=60, payoff=1)
+        agent.update(ctx, action=1, realised_attendance=58, payoff=1)
         
-        assert agent.scores[0] == pytest.approx(0.8 * 0.0 - 0.0)
-        assert agent.scores[1] == pytest.approx(0.8 * (-20.0) - 20.0)
+        assert agent.scores[0] == pytest.approx(0.8 * 1.0 + 1.0)
+        assert agent.scores[1] == pytest.approx(0.8 * (-1.0) - 1.0)
 
     def test_recency_forgetting_effect(self) -> None:
         """Old errors should be forgotten over time with low lambda."""
@@ -160,7 +160,7 @@ class TestTurnoverPredictorAgent:
             agent.update(
                 context=ctx,
                 action=1,
-                realised_attendance=62,
+                realised_attendance=58,
                 payoff=1,
                 rng=rng,
             )
@@ -168,7 +168,7 @@ class TestTurnoverPredictorAgent:
         assert agent.n_replacements == 0
 
     def test_turnover_scores_decay(self) -> None:
-        """Scores should decay by lambda_decay factor."""
+        """Scores should decay by lambda_decay factor with virtual payoff."""
         predictors = [("pred", lambda h, n, L: 60.0)]
         lambda_decay = 0.9
         agent = TurnoverPredictorAgent(
@@ -183,9 +183,9 @@ class TestTurnoverPredictorAgent:
         rng = np.random.default_rng(42)
         
         agent.choose_action(ctx, rng)
-        agent.update(ctx, action=1, realised_attendance=60, payoff=1, rng=rng)
+        agent.update(ctx, action=1, realised_attendance=58, payoff=1, rng=rng)
         
-        assert agent.scores[0] == pytest.approx(0.9 * 10.0 - 0.0)
+        assert agent.scores[0] == pytest.approx(0.9 * 10.0 + 1.0)
 
     def test_turnover_invalid_patience(self) -> None:
         """Should raise for invalid patience."""
