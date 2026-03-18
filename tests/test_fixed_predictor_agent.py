@@ -1,5 +1,5 @@
 """
-Tests for FixedPredictorAgent and the fixed-predictor baseline experiment.
+Tests for FixedPredictorAgent and the Repeated Fixed Strategy baseline.
 """
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ import pytest
 from src.agents.base import RoundContext
 from src.agents.fixed_predictor_agent import FixedPredictorAgent
 from src.agents.predictors import last_value, mirror, make_rolling_mean, default_predictor_library
-from src.experiments.run_fixed_predictor_baseline import (
-    assign_fixed_predictors,
+from src.experiments.populations import build_fixed_predictor_population
+from src.experiments.run_repeated_fixed_strategy import (
     count_predictor_assignments,
     compute_predictor_payoffs,
 )
@@ -122,62 +122,61 @@ class TestFixedPredictorAgent:
         assert action1 == action2
 
 
-class TestAssignFixedPredictors:
-    """Tests for the predictor assignment function."""
+class TestBuildFixedPredictorPopulation:
+    """Tests for the population builder function."""
 
     def test_returns_correct_number_of_agents(self) -> None:
         """Should return exactly n_players agents."""
-        rng = np.random.default_rng(42)
-        library = default_predictor_library()
-        agents = assign_fixed_predictors(101, library, rng)
+        agents = build_fixed_predictor_population(101, seed=42)
         assert len(agents) == 101
 
     def test_all_agents_are_fixed_predictor_type(self) -> None:
         """All returned agents should be FixedPredictorAgent."""
-        rng = np.random.default_rng(42)
-        library = default_predictor_library()
-        agents = assign_fixed_predictors(50, library, rng)
+        agents = build_fixed_predictor_population(50, seed=42)
 
         for agent in agents:
             assert isinstance(agent, FixedPredictorAgent)
 
     def test_reproducibility_with_same_seed(self) -> None:
         """Same seed should produce same predictor assignments."""
-        library = default_predictor_library()
-
-        rng1 = np.random.default_rng(42)
-        agents1 = assign_fixed_predictors(50, library, rng1)
+        agents1 = build_fixed_predictor_population(50, seed=42)
         names1 = [a.predictor_name for a in agents1]
 
-        rng2 = np.random.default_rng(42)
-        agents2 = assign_fixed_predictors(50, library, rng2)
+        agents2 = build_fixed_predictor_population(50, seed=42)
         names2 = [a.predictor_name for a in agents2]
 
         assert names1 == names2
 
     def test_different_seeds_give_different_assignments(self) -> None:
         """Different seeds should (almost certainly) give different assignments."""
-        library = default_predictor_library()
-
-        rng1 = np.random.default_rng(42)
-        agents1 = assign_fixed_predictors(100, library, rng1)
+        agents1 = build_fixed_predictor_population(100, seed=42)
         names1 = [a.predictor_name for a in agents1]
 
-        rng2 = np.random.default_rng(999)
-        agents2 = assign_fixed_predictors(100, library, rng2)
+        agents2 = build_fixed_predictor_population(100, seed=999)
         names2 = [a.predictor_name for a in agents2]
 
         assert names1 != names2
 
     def test_uses_predictors_from_library(self) -> None:
         """All assigned predictor names should be from the library."""
-        rng = np.random.default_rng(42)
         library = default_predictor_library()
         library_names = {name for name, _ in library}
 
-        agents = assign_fixed_predictors(200, library, rng)
+        agents = build_fixed_predictor_population(200, seed=42)
         for agent in agents:
             assert agent.predictor_name in library_names
+
+    def test_cover_all_predictors_true(self) -> None:
+        """With cover_all_predictors=True, every predictor should appear."""
+        library = default_predictor_library()
+        library_names = {name for name, _ in library}
+
+        agents = build_fixed_predictor_population(
+            101, seed=42, cover_all_predictors=True
+        )
+        assigned_names = {a.predictor_name for a in agents}
+
+        assert assigned_names == library_names
 
 
 class TestCountPredictorAssignments:
@@ -185,18 +184,14 @@ class TestCountPredictorAssignments:
 
     def test_counts_sum_to_total_agents(self) -> None:
         """Sum of counts should equal number of agents."""
-        rng = np.random.default_rng(42)
-        library = default_predictor_library()
-        agents = assign_fixed_predictors(101, library, rng)
+        agents = build_fixed_predictor_population(101, seed=42)
 
         counts = count_predictor_assignments(agents)
         assert sum(counts.values()) == 101
 
     def test_returns_dict_of_strings_to_ints(self) -> None:
         """Counts should be a dict mapping predictor names to counts."""
-        rng = np.random.default_rng(42)
-        library = default_predictor_library()
-        agents = assign_fixed_predictors(50, library, rng)
+        agents = build_fixed_predictor_population(50, seed=42)
 
         counts = count_predictor_assignments(agents)
         assert isinstance(counts, dict)
@@ -211,9 +206,7 @@ class TestComputePredictorPayoffs:
 
     def test_returns_dataframe_with_expected_columns(self) -> None:
         """DataFrame should have predictor_name, n_users, mean_payoff, std_payoff."""
-        rng = np.random.default_rng(42)
-        library = default_predictor_library()
-        agents = assign_fixed_predictors(50, library, rng)
+        agents = build_fixed_predictor_population(50, seed=42)
         cumulative_payoffs = list(range(50))
 
         df = compute_predictor_payoffs(agents, cumulative_payoffs)
@@ -222,9 +215,7 @@ class TestComputePredictorPayoffs:
 
     def test_n_users_sums_to_total(self) -> None:
         """Sum of n_users should equal total agents."""
-        rng = np.random.default_rng(42)
-        library = default_predictor_library()
-        agents = assign_fixed_predictors(101, library, rng)
+        agents = build_fixed_predictor_population(101, seed=42)
         cumulative_payoffs = [0] * 101
 
         df = compute_predictor_payoffs(agents, cumulative_payoffs)

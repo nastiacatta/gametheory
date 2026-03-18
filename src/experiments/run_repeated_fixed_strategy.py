@@ -120,7 +120,7 @@ def plot_predictor_summary(
     ax1.set_xlabel("Predictor")
     ax1.set_ylabel("Number of users", color="steelblue")
     ax2.set_ylabel("Mean cumulative payoff", color="darkorange")
-    ax1.set_title("Fixed-Predictor Baseline: Assignment Counts and Mean Payoff")
+    ax1.set_title("Repeated Fixed Strategy: Assignment Counts and Mean Payoff")
 
     ax1.set_xticks(x)
     ax1.set_xticklabels(predictor_names, rotation=45, ha="right")
@@ -146,16 +146,16 @@ def plot_predictor_summary(
 _BOOTSTRAP_HISTORY_LEN = 8
 
 
-def run_fixed_predictor_baseline(
+def run_repeated_fixed_strategy(
     n_players: int = 101,
     threshold: int = 60,
     n_rounds: int = 200,
     seed: int = 42,
-    output_dir: Path | str = "outputs/fixed_predictor_baseline",
+    output_dir: Path | str = "outputs/repeated_fixed_strategy",
     cover_all_predictors: bool = True,
 ) -> Tuple[RepeatedGameResult, pd.DataFrame]:
     """
-    Run the fixed-predictor baseline experiment.
+    Run the Repeated Fixed Strategy baseline experiment.
 
     The game is seeded with a bootstrap attendance history of length 8 so
     that every predictor has data from round 1.  This is part of the
@@ -187,7 +187,7 @@ def run_fixed_predictor_baseline(
 
     predictor_library = default_predictor_library()
 
-    print(f"Running fixed-predictor baseline: n={n_players}, L={threshold}, "
+    print(f"Running repeated fixed strategy: n={n_players}, L={threshold}, "
           f"rounds={n_rounds}, seed={seed}")
     print(f"Predictor library size: {len(predictor_library)}")
     print(f"Cover all predictors: {cover_all_predictors}")
@@ -250,4 +250,4 @@ def run_fixed_predictor_baseline(
 
 
 if __name__ == "__main__":
-    run_fixed_predictor_baseline()
+    run_repeated_fixed_strategy()

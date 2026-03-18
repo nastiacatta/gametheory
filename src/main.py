@@ -35,6 +35,7 @@ from src.analysis.plots import (
 )
 from src.config import RepeatedGameConfig, StaticGameConfig
 from src.experiments.populations import (
+    build_fixed_predictor_population,
     build_heterogeneous,
     build_homogeneous_best_predictor,
     build_homogeneous_recency,
@@ -42,6 +43,7 @@ from src.experiments.populations import (
     build_homogeneous_turnover,
     build_producer_speculator,
 )
+from src.experiments.run_repeated_fixed_strategy import bootstrap_history
 from src.game.repeated_game import RepeatedMinorityGame
 from src.game.static_game import StaticMinorityGame
 
@@ -68,6 +70,13 @@ def build_basic_agents(args: argparse.Namespace) -> List[BaseAgent]:
             for _ in range(n_players - split)
         )
         return agents
+
+    if args.population == "fixed_predictor":
+        return build_fixed_predictor_population(
+            n_players=n_players,
+            seed=args.seed,
+            cover_all_predictors=True,
+        )
 
     raise ValueError(f"Unknown population: {args.population}")
 
@@ -111,17 +120,30 @@ def run_repeated(args: argparse.Namespace) -> None:
     )
     agents = build_basic_agents(args)
 
+    # Use bootstrap history for fixed_predictor population
+    init_history = None
+    if args.population == "fixed_predictor":
+        init_history = bootstrap_history(
+            n_players=config.n_players,
+            threshold=config.threshold,
+            length=8,
+            seed=config.seed,
+        )
+
     game = RepeatedMinorityGame(
         n_players=config.n_players,
         threshold=config.threshold,
         n_rounds=config.n_rounds,
         agents=agents,
         seed=config.seed,
+        initial_attendance_history=init_history,
     )
     result = game.play()
 
     summary = result.summary()
     print("=== REPEATED GAME ===")
+    if args.population == "fixed_predictor":
+        print(f"Bootstrap history: {init_history}")
     for key, value in summary.items():
         print(f"{key}={value}")
 
@@ -380,7 +402,12 @@ def build_parser() -> argparse.ArgumentParser:
     repeated_parser.add_argument("--n_rounds", type=int, default=200)
     repeated_parser.add_argument("--seed", type=int, default=42)
     repeated_parser.add_argument("--output_dir", type=str, default="outputs/repeated")
-    repeated_parser.add_argument("--population", choices=["random", "fixed", "mixed"], default="mixed")
+    repeated_parser.add_argument(
+        "--population",
+        choices=["random", "fixed", "mixed", "fixed_predictor"],
+        default="fixed_predictor",
+        help="Population type (default: fixed_predictor = Repeated Fixed Strategy baseline)"
+    )
     repeated_parser.add_argument("--p_attend", type=float, default=0.55)
     repeated_parser.add_argument("--predicted_attendance", type=int, default=58)
 
