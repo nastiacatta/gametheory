@@ -11,7 +11,7 @@ Supports:
 from __future__ import annotations
 
 from math import isclose
-from typing import List, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -24,33 +24,73 @@ from src.agents.producer_agent import ProducerAgent
 from src.agents.random_agent import RandomAgent
 from src.agents.score_updaters import CumulativeScoreUpdater, RecencyScoreUpdater
 
+PredictorBank = List[Tuple[str, Predictor]]
+
 
 def _adaptive_bank(rng: np.random.Generator, predictors_per_agent: int):
     """Sample a predictor bank for a single adaptive agent."""
     return sample_predictor_library(rng=rng, k=predictors_per_agent)
 
 
+def sample_predictor_banks(
+    n_players: int,
+    predictors_per_agent: int,
+    seed: int = 42,
+) -> List[PredictorBank]:
+    """
+    Sample predictor banks for all players at once.
+
+    Use this to ensure both non_recency and recency runs use identical
+    predictor assignments for a fair paired comparison.
+    """
+    library = default_predictor_library()
+    max_k = len(library)
+    if not (1 <= predictors_per_agent <= max_k):
+        raise ValueError(f"predictors_per_agent must be between 1 and {max_k}.")
+
+    rng = np.random.default_rng(seed)
+    banks: List[PredictorBank] = []
+    for _ in range(n_players):
+        idx = rng.choice(max_k, size=predictors_per_agent, replace=False)
+        bank = [library[int(i)] for i in idx]
+        banks.append(bank)
+    return banks
+
+
 def build_homogeneous_non_recency(
     n_players: int,
     predictors_per_agent: int = 6,
     seed: int = 42,
+    predictor_banks: Optional[Sequence[PredictorBank]] = None,
 ) -> List[BaseAgent]:
     """
     All agents use cumulative (non-recency) score updating with hard argmax.
 
     Score update: s_j(t+1) = s_j(t) - |forecast_j(t) - A_t|
+
+    If predictor_banks is provided, use those instead of sampling new banks.
     """
-    _max_k = len(default_predictor_library())
-    if not (1 <= predictors_per_agent <= _max_k):
-        raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
-    rng = np.random.default_rng(seed)
     updater = CumulativeScoreUpdater()
+
+    if predictor_banks is None:
+        _max_k = len(default_predictor_library())
+        if not (1 <= predictors_per_agent <= _max_k):
+            raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
+        predictor_banks = sample_predictor_banks(
+            n_players=n_players,
+            predictors_per_agent=predictors_per_agent,
+            seed=seed,
+        )
+
+    if len(predictor_banks) != n_players:
+        raise ValueError("predictor_banks length must equal n_players.")
+
     return [
         InductivePredictorAgent(
-            predictors=_adaptive_bank(rng, predictors_per_agent),
+            predictors=list(bank),
             score_updater=updater,
         )
-        for _ in range(n_players)
+        for bank in predictor_banks
     ]
 
 
@@ -59,23 +99,36 @@ def build_homogeneous_recency(
     lambda_decay: float = 0.95,
     predictors_per_agent: int = 6,
     seed: int = 42,
+    predictor_banks: Optional[Sequence[PredictorBank]] = None,
 ) -> List[BaseAgent]:
     """
     All agents use recency-weighted score updating with hard argmax.
 
     Score update: s_j(t+1) = lambda * s_j(t) - |forecast_j(t) - A_t|
+
+    If predictor_banks is provided, use those instead of sampling new banks.
     """
-    _max_k = len(default_predictor_library())
-    if not (1 <= predictors_per_agent <= _max_k):
-        raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
-    rng = np.random.default_rng(seed)
     updater = RecencyScoreUpdater(lambda_decay=lambda_decay)
+
+    if predictor_banks is None:
+        _max_k = len(default_predictor_library())
+        if not (1 <= predictors_per_agent <= _max_k):
+            raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
+        predictor_banks = sample_predictor_banks(
+            n_players=n_players,
+            predictors_per_agent=predictors_per_agent,
+            seed=seed,
+        )
+
+    if len(predictor_banks) != n_players:
+        raise ValueError("predictor_banks length must equal n_players.")
+
     return [
         InductivePredictorAgent(
-            predictors=_adaptive_bank(rng, predictors_per_agent),
+            predictors=list(bank),
             score_updater=updater,
         )
-        for _ in range(n_players)
+        for bank in predictor_banks
     ]
 
 
