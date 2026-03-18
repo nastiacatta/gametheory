@@ -135,21 +135,58 @@ This outline provides a suggested structure for the coursework report. Section h
 
 ## 8. Analysis of Simulation Outcomes
 
-### 8.1 Convergence Behaviour
-- Does mean attendance approach \(L\)? Does variance decrease?
-- Comparison across agent types.
+### 8.1 Baseline (Non-Adaptive) Results
 
-### 8.2 Coordination Efficiency
-- Overcrowding frequency.
-- Utilisation: fraction of capacity used when not overcrowded.
+**Figures to include** (from `outputs/baselines/`):
+- `attendance_over_time.png`: Attendance per round (expected: fluctuating around ~79, always above threshold)
+- `cumulative_average_attendance.png`: Cumulative mean settling near 78.6
 
-### 8.3 Fairness and Dispersion
-- Payoff inequality across agents.
+**Key observations:**
+- Mean attendance ~78.6, far above threshold \(L = 60\)
+- Overcrowding rate = 100% (non-adaptive population always overcrowds)
+- Mean cumulative payoff strongly negative (~-156)
+- This population cannot coordinate because agents do not adapt to history
+
+### 8.2 Inductive (Adaptive) Results
+
+**Figures to include** (from `outputs/inductive_best/` and `outputs/inductive_softmax/`):
+- `attendance.png`: Attendance per round (expected: oscillating around \(L = 60\))
+- `cum_avg_attendance.png`: Cumulative mean converging toward threshold
+- `predictor_share.png`: Predictor usage over time
+- `payoff_hist.png`: Distribution of cumulative payoffs
+
+**Key observations:**
+- Mean attendance ~60 (close to threshold \(L\))
+- Overcrowding rate ~50% (much improved coordination)
+- Mean cumulative payoff much higher (~-40) than baseline
+- Variance remains high due to adaptive oscillation around threshold
+
+### 8.3 Baseline vs Inductive Comparison
+
+| Metric | Baseline | Best-Predictor | Softmax |
+|--------|----------|----------------|---------|
+| Mean attendance | 78.6 | 59.8 | 60.0 |
+| Overcrowding rate | 100% | 53.5% | 51.5% |
+| Mean cumulative payoff | -155.7 | -40.5 | -38.3 |
+| Variance from threshold | 359.2 | 387.6 | 455.2 |
+
+**Discussion:**
+- Adaptive agents converge toward the threshold attendance (\(L = 60\)), matching Arthur's prediction
+- Non-adaptive populations consistently overcrowd, demonstrating coordination failure
+- Higher variance for inductive runs reflects the oscillatory nature of adaptive coordination
+- Softmax selection achieves slightly better payoffs due to exploration-exploitation balance
+
+### 8.4 Coordination Efficiency
+- Overcrowding frequency: compare 100% (baseline) vs ~50% (inductive)
+- Utilisation: fraction of capacity used when not overcrowded
+
+### 8.5 Fairness and Dispersion
+- Payoff inequality across agents
 - Do some agents consistently outperform?
 
-### 8.4 Inductive Dynamics
-- Predictor switching patterns.
-- Dominant predictors over time.
+### 8.6 Inductive Dynamics
+- Predictor switching patterns (see `predictor_share.png`)
+- Dominant predictors over time
 
 ---
 
@@ -195,3 +232,22 @@ Discuss how the model abstracts these scenarios and what insights transfer.
 - A. Predictor library details (from `src/agents/predictors.py`).
 - B. Full metric definitions.
 - C. Selected raw outputs and figures.
+
+---
+
+## Figure and Output Directory Reference
+
+| Experiment | Output Directory | Key Figures |
+|------------|------------------|-------------|
+| Baseline (non-adaptive) | `outputs/baselines/` | `attendance_over_time.png`, `cumulative_average_attendance.png` |
+| Best-predictor inductive | `outputs/inductive_best/` | `attendance.png`, `cum_avg_attendance.png`, `predictor_share.png`, `payoff_hist.png` |
+| Softmax inductive | `outputs/inductive_softmax/` | `attendance.png`, `cum_avg_attendance.png`, `predictor_share.png`, `payoff_hist.png` |
+| Heterogeneous (producer-speculator) | `outputs/heterogeneous/` | `attendance.png`, `cum_avg_attendance.png`, `payoff_hist.png` |
+
+**Regeneration commands:**
+```bash
+python -m src.experiments.run_repeated_baselines --n_rounds 200 --output_dir outputs/baselines
+python -m src.experiments.run_inductive --mode best --n_rounds 200 --output_dir outputs/inductive_best
+python -m src.experiments.run_inductive --mode softmax --beta 1.0 --n_rounds 200 --output_dir outputs/inductive_softmax
+python -m src.experiments.run_heterogeneous --mode producer_speculator --n_producers 50 --n_rounds 200 --output_dir outputs/heterogeneous
+```

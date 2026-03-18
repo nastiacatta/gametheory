@@ -10,7 +10,9 @@ from pathlib import Path
 from src.analysis.metrics import compute_all_metrics
 from src.analysis.plots import (
     plot_attendance_over_time,
-    plot_cumulative_average_attendance,
+    plot_attendance_deviation_over_time,
+    plot_rolling_variance_from_threshold,
+    plot_threshold_distance_histogram,
     plot_payoff_histogram,
     plot_predictor_share_over_time,
 )
@@ -82,11 +84,42 @@ def main() -> None:
     import pandas as pd
     pd.DataFrame([metrics]).to_csv(out / "summary.csv", index=False)
 
-    plot_attendance_over_time(result.attendance_history, config.threshold, out / "attendance.png")
-    plot_cumulative_average_attendance(result.attendance_history, config.threshold, out / "cum_avg_attendance.png")
-    plot_payoff_histogram(result.cumulative_payoffs, out / "payoff_hist.png")
+    plot_attendance_over_time(
+        result.attendance_history,
+        config.threshold,
+        out / "attendance.png",
+    )
+
+    plot_attendance_deviation_over_time(
+        result.attendance_history,
+        config.threshold,
+        out / "attendance_deviation.png",
+    )
+
+    plot_rolling_variance_from_threshold(
+        result.attendance_history,
+        config.threshold,
+        window=max(10, config.n_rounds // 10),
+        output_path=out / "rolling_variance.png",
+    )
+
+    plot_threshold_distance_histogram(
+        result.attendance_history,
+        config.threshold,
+        out / "attendance_deviation_hist.png",
+    )
+
+    plot_payoff_histogram(
+        result.cumulative_payoffs,
+        out / "payoff_hist.png",
+    )
+
     if use_histories:
-        plot_predictor_share_over_time(predictor_histories, predictor_names, out / "predictor_share.png")
+        plot_predictor_share_over_time(
+            predictor_histories,
+            predictor_names,
+            out / "predictor_share.png",
+        )
 
     print(f"Inductive ({args.mode}): {out.resolve()}")
     for k, v in metrics.items():

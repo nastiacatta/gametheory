@@ -10,8 +10,11 @@ from pathlib import Path
 from src.analysis.metrics import compute_all_metrics
 from src.analysis.plots import (
     plot_attendance_over_time,
-    plot_cumulative_average_attendance,
+    plot_attendance_deviation_over_time,
+    plot_rolling_variance_from_threshold,
+    plot_threshold_distance_histogram,
     plot_payoff_histogram,
+    plot_payoff_by_type,
 )
 from src.config import RepeatedGameConfig
 from src.experiments.populations import (
@@ -96,14 +99,49 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
 
     result.rounds_dataframe().to_csv(out / "rounds.csv", index=False)
-    result.players_dataframe().to_csv(out / "players.csv", index=False)
 
     import pandas as pd
+
+    player_df = result.players_dataframe().copy()
+    player_df["agent_type"] = [type(a).__name__ for a in agents]
+    player_df.to_csv(out / "players.csv", index=False)
+
     pd.DataFrame([metrics]).to_csv(out / "summary.csv", index=False)
 
-    plot_attendance_over_time(result.attendance_history, config.threshold, out / "attendance.png")
-    plot_cumulative_average_attendance(result.attendance_history, config.threshold, out / "cum_avg_attendance.png")
-    plot_payoff_histogram(result.cumulative_payoffs, out / "payoff_hist.png")
+    plot_attendance_over_time(
+        result.attendance_history,
+        config.threshold,
+        out / "attendance.png",
+    )
+
+    plot_attendance_deviation_over_time(
+        result.attendance_history,
+        config.threshold,
+        out / "attendance_deviation.png",
+    )
+
+    plot_rolling_variance_from_threshold(
+        result.attendance_history,
+        config.threshold,
+        window=max(10, config.n_rounds // 10),
+        output_path=out / "rolling_variance.png",
+    )
+
+    plot_threshold_distance_histogram(
+        result.attendance_history,
+        config.threshold,
+        out / "attendance_deviation_hist.png",
+    )
+
+    plot_payoff_histogram(
+        result.cumulative_payoffs,
+        out / "payoff_hist.png",
+    )
+
+    plot_payoff_by_type(
+        player_df,
+        out / "payoff_by_type.png",
+    )
 
     print(f"Heterogeneous ({args.mode}): {out.resolve()}")
     for k, v in metrics.items():

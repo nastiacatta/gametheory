@@ -18,22 +18,37 @@ from src.game.repeated_game import RepeatedMinorityGame
 from src.game.static_game import StaticMinorityGame
 
 
-def build_agents(n_players: int) -> List[BaseAgent]:
+def build_agents(args: argparse.Namespace) -> List[BaseAgent]:
     """
-    Simple baseline population:
-    - half random agents
-    - half fixed-attendance agents
+    Build agent population based on CLI arguments.
+
+    Populations:
+    - random: all RandomAgent with p_attend
+    - fixed: all FixedAttendanceAgent with predicted_attendance
+    - mixed: half random, half fixed (default)
     """
-    agents = []
-    split = n_players // 2
+    n_players = args.n_players
 
-    for _ in range(split):
-        agents.append(RandomAgent(p_attend=0.55))
+    if args.population == "random":
+        return [RandomAgent(p_attend=args.p_attend) for _ in range(n_players)]
 
-    for _ in range(n_players - split):
-        agents.append(FixedAttendanceAgent(predicted_attendance=58))
+    if args.population == "fixed":
+        return [
+            FixedAttendanceAgent(predicted_attendance=args.predicted_attendance)
+            for _ in range(n_players)
+        ]
 
-    return agents
+    if args.population == "mixed":
+        split = n_players // 2
+        agents: List[BaseAgent] = []
+        agents.extend(RandomAgent(p_attend=args.p_attend) for _ in range(split))
+        agents.extend(
+            FixedAttendanceAgent(predicted_attendance=args.predicted_attendance)
+            for _ in range(n_players - split)
+        )
+        return agents
+
+    raise ValueError(f"Unknown population: {args.population}")
 
 
 def run_static(args: argparse.Namespace) -> None:
@@ -42,7 +57,7 @@ def run_static(args: argparse.Namespace) -> None:
         threshold=args.threshold,
         seed=args.seed,
     )
-    agents = build_agents(config.n_players)
+    agents = build_agents(args)
 
     game = StaticMinorityGame(
         n_players=config.n_players,
@@ -71,7 +86,7 @@ def run_repeated(args: argparse.Namespace) -> None:
         n_rounds=args.n_rounds,
         seed=args.seed,
     )
-    agents = build_agents(config.n_players)
+    agents = build_agents(args)
 
     game = RepeatedMinorityGame(
         n_players=config.n_players,
@@ -100,6 +115,9 @@ def build_parser() -> argparse.ArgumentParser:
     static_parser.add_argument("--n_players", type=int, default=101)
     static_parser.add_argument("--threshold", type=int, default=60)
     static_parser.add_argument("--seed", type=int, default=42)
+    static_parser.add_argument("--population", choices=["random", "fixed", "mixed"], default="mixed")
+    static_parser.add_argument("--p_attend", type=float, default=0.55)
+    static_parser.add_argument("--predicted_attendance", type=int, default=58)
 
     repeated_parser = subparsers.add_parser("repeated")
     repeated_parser.add_argument("--n_players", type=int, default=101)
@@ -107,6 +125,9 @@ def build_parser() -> argparse.ArgumentParser:
     repeated_parser.add_argument("--n_rounds", type=int, default=200)
     repeated_parser.add_argument("--seed", type=int, default=42)
     repeated_parser.add_argument("--output_dir", type=str, default="outputs")
+    repeated_parser.add_argument("--population", choices=["random", "fixed", "mixed"], default="mixed")
+    repeated_parser.add_argument("--p_attend", type=float, default=0.55)
+    repeated_parser.add_argument("--predicted_attendance", type=int, default=58)
 
     return parser
 

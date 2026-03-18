@@ -12,12 +12,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from src.agents.base import BaseAgent, RoundContext
 from src.analysis.metrics import compute_all_metrics
+from src.analysis.plots import (
+    plot_attendance_over_time,
+    plot_attendance_deviation_over_time,
+    plot_rolling_variance_from_threshold,
+    plot_threshold_distance_histogram,
+    plot_payoff_histogram,
+)
 from src.game.payoff import build_stage_outcome
 
 
@@ -84,29 +90,33 @@ class RepeatedGameResult:
 
         self.rounds_dataframe().to_csv(output_path / "repeated_rounds.csv", index=False)
         self.players_dataframe().to_csv(output_path / "repeated_players.csv", index=False)
+        pd.DataFrame([self.summary()]).to_csv(output_path / "repeated_summary.csv", index=False)
 
-        summary_df = pd.DataFrame([self.summary()])
-        summary_df.to_csv(output_path / "repeated_summary.csv", index=False)
-
-        plt.figure(figsize=(10, 5))
-        plt.plot(self.attendance_history)
-        plt.axhline(self.threshold, linestyle="--")
-        plt.xlabel("Round")
-        plt.ylabel("Attendance")
-        plt.title("Attendance over time")
-        plt.tight_layout()
-        plt.savefig(output_path / "attendance_over_time.png", dpi=200)
-        plt.close()
-
-        plt.figure(figsize=(10, 5))
-        plt.plot(np.cumsum(self.attendance_history) / np.arange(1, len(self.attendance_history) + 1))
-        plt.axhline(self.threshold, linestyle="--")
-        plt.xlabel("Round")
-        plt.ylabel("Cumulative average attendance")
-        plt.title("Cumulative average attendance")
-        plt.tight_layout()
-        plt.savefig(output_path / "cumulative_average_attendance.png", dpi=200)
-        plt.close()
+        plot_attendance_over_time(
+            self.attendance_history,
+            self.threshold,
+            output_path / "attendance_over_time.png",
+        )
+        plot_attendance_deviation_over_time(
+            self.attendance_history,
+            self.threshold,
+            output_path / "attendance_deviation_over_time.png",
+        )
+        plot_rolling_variance_from_threshold(
+            self.attendance_history,
+            self.threshold,
+            window=max(10, len(self.attendance_history) // 10),
+            output_path=output_path / "rolling_variance_from_threshold.png",
+        )
+        plot_threshold_distance_histogram(
+            self.attendance_history,
+            self.threshold,
+            output_path / "attendance_deviation_histogram.png",
+        )
+        plot_payoff_histogram(
+            self.cumulative_payoffs,
+            output_path / "payoff_histogram.png",
+        )
 
 
 class RepeatedMinorityGame:

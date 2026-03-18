@@ -34,3 +34,7 @@ def test_overcrowding_rate_all_below() -> None:
 
 def test_overcrowding_rate_all_above() -> None:
     assert overcrowding_rate([61, 70, 80], 60) == 1.0
+
+
+def test_overcrowding_rate_uses_strict_threshold() -> None:
+    assert overcrowding_rate([60, 61, 59, 60], 60) == 0.25

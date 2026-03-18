@@ -44,7 +44,9 @@ def mad_from_threshold(attendance_history: List[int], threshold: int) -> float:
 
 def overcrowding_rate(attendance_history: List[int], threshold: int) -> float:
     """Fraction of rounds with A_t > L."""
-    arr = np.array(attendance_history, dtype=float)
+    arr = np.asarray(attendance_history, dtype=float)
+    if arr.size == 0:
+        return float("nan")
     return float(np.mean(arr > threshold))
 
 
