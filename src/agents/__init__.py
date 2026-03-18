@@ -7,6 +7,7 @@ from src.agents.producer_agent import ProducerAgent
 from src.agents.random_agent import RandomAgent
 from src.agents.recency_weighted_predictor_agent import RecencyWeightedPredictorAgent
 from src.agents.softmax_predictor_agent import SoftmaxPredictorAgent
+from src.agents.turnover_predictor_agent import TurnoverPredictorAgent
 from src.agents.virtual_payoff_predictor_agent import VirtualPayoffPredictorAgent
 
 __all__ = [
@@ -18,5 +19,6 @@ __all__ = [
     "RandomAgent",
     "RecencyWeightedPredictorAgent",
     "SoftmaxPredictorAgent",
+    "TurnoverPredictorAgent",
     "VirtualPayoffPredictorAgent",
 ]

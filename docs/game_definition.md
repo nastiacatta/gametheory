@@ -185,7 +185,7 @@ j_i^*(t) = \arg\max_j \, s_{ij}(t), \qquad
 a_i(t) = \mathbf{1}[\hat{A}_{i j_i^*}(t) \le L].
 $$
 
-Ties are broken in favour of the lowest-index predictor.
+Ties are broken randomly (uniform selection among equally-best predictors).
 
 **Softmax (Boltzmann selection):**
 
@@ -197,6 +197,19 @@ where $\beta \ge 0$ is the inverse temperature. The agent attends if the selecte
 
 - $\beta = 0$: uniform random selection (pure exploration).
 - $\beta \to \infty$: hard argmax (pure exploitation).
+
+**Recency-weighted (exponential forgetting):**
+
+An alternative scoring rule replaces cumulative accuracy with exponentially-decayed scores:
+
+$$
+s_{ij}(t+1) = \lambda \cdot s_{ij}(t) - \lvert \hat{A}_{ij}(t) - A_t \rvert, \qquad \lambda \in (0, 1].
+$$
+
+Lower $\lambda$ means faster forgetting of past performance, allowing quicker adaptation to regime changes. Predictor selection can use either hard argmax or softmax over the decayed scores.
+
+- $\lambda = 1$: equivalent to cumulative scoring (no decay).
+- $\lambda < 1$: recent forecast accuracy weighted more heavily.
 
 ### 4.3 Terminology Note
 

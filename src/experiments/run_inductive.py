@@ -1,5 +1,5 @@
 """
-Run repeated-game experiments with inductive strategies (best-predictor, softmax, virtual-payoff).
+Run repeated-game experiments with inductive strategies (best, softmax, recency).
 """
 
 from __future__ import annotations
@@ -18,23 +18,26 @@ from src.analysis.plots import (
     plot_payoff_histogram,
     plot_ranked_final_payoffs,
     plot_predictor_share_over_time,
+    plot_predictor_share_heatmap,
 )
 from src.config import RepeatedGameConfig
 from src.experiments.populations import (
     build_homogeneous_best_predictor,
+    build_homogeneous_recency,
     build_homogeneous_softmax,
-    build_homogeneous_virtual_payoff,
 )
 from src.game.repeated_game import RepeatedMinorityGame
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["best", "softmax", "virtual_payoff"], required=True)
+    parser.add_argument("--mode", choices=["best", "softmax", "recency"], required=True)
     parser.add_argument("--n_players", type=int, default=101)
     parser.add_argument("--threshold", type=int, default=60)
     parser.add_argument("--n_rounds", type=int, default=200)
-    parser.add_argument("--beta", type=float, default=1.0, help="Softmax inverse temperature")
+    parser.add_argument("--beta", type=float, default=1.0, help="Softmax/recency inverse temperature")
+    parser.add_argument("--lambda_decay", type=float, default=0.95, help="Score decay factor for recency mode")
+    parser.add_argument("--selection", choices=["argmax", "softmax"], default="argmax", help="Selection rule for recency mode")
     parser.add_argument("--predictors_per_agent", type=int, default=6, help="Number of predictors per agent")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output_dir", type=str, default="outputs/inductive")
@@ -55,10 +58,17 @@ def main() -> None:
         agents = build_homogeneous_softmax(
             config.n_players, beta=args.beta, predictors_per_agent=args.predictors_per_agent, seed=config.seed
         )
-    else:
-        agents = build_homogeneous_virtual_payoff(
-            config.n_players, predictors_per_agent=args.predictors_per_agent, seed=config.seed
+    elif args.mode == "recency":
+        agents = build_homogeneous_recency(
+            config.n_players,
+            lambda_decay=args.lambda_decay,
+            selection=args.selection,
+            beta=args.beta,
+            predictors_per_agent=args.predictors_per_agent,
+            seed=config.seed,
         )
+    else:
+        raise ValueError(f"Unknown mode: {args.mode}")
 
     game = RepeatedMinorityGame(
         n_players=config.n_players,
@@ -145,6 +155,11 @@ def main() -> None:
             predictor_histories,
             predictor_names,
             out / "predictor_share.png",
+        )
+        plot_predictor_share_heatmap(
+            predictor_histories,
+            predictor_names,
+            out / "predictor_share_heatmap.png",
         )
 
     print(f"Inductive ({args.mode}): {out.resolve()}")

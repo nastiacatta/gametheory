@@ -4,7 +4,7 @@ Unified CLI for the El Farol threshold minority game.
 Subcommands:
     static      - Single-shot game
     repeated    - Repeated game with basic populations
-    inductive   - Repeated game with inductive agents (best, softmax, recency, virtual_payoff)
+    inductive   - Repeated game with inductive agents (best, softmax, recency, turnover)
     heterogeneous - Repeated game with mixed populations
     sweep       - Parameter sweep over multiple seeds and modes
 
@@ -42,7 +42,7 @@ from src.experiments.populations import (
     build_homogeneous_fixed_predictor,
     build_homogeneous_recency,
     build_homogeneous_softmax,
-    build_homogeneous_virtual_payoff,
+    build_homogeneous_turnover,
     build_producer_speculator,
 )
 from src.experiments.run_repeated_fixed_strategy import bootstrap_history
@@ -199,9 +199,12 @@ def run_inductive(args: argparse.Namespace) -> None:
             predictors_per_agent=args.predictors_per_agent,
             seed=config.seed,
         )
-    elif args.mode == "virtual_payoff":
-        agents = build_homogeneous_virtual_payoff(
+    elif args.mode == "turnover":
+        agents = build_homogeneous_turnover(
             config.n_players,
+            lambda_decay=args.lambda_decay,
+            patience=args.patience,
+            error_threshold=args.error_threshold,
             predictors_per_agent=args.predictors_per_agent,
             seed=config.seed,
         )
@@ -432,7 +435,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # === inductive ===
     inductive_parser = subparsers.add_parser("inductive", help="Repeated game with inductive agents")
-    inductive_parser.add_argument("--mode", choices=["best", "softmax", "recency", "virtual_payoff"], required=True)
+    inductive_parser.add_argument("--mode", choices=["best", "softmax", "recency", "turnover"], required=True)
     inductive_parser.add_argument("--n_players", type=int, default=101)
     inductive_parser.add_argument("--threshold", type=int, default=60)
     inductive_parser.add_argument("--n_rounds", type=int, default=200)
@@ -440,8 +443,10 @@ def build_parser() -> argparse.ArgumentParser:
     inductive_parser.add_argument("--output_dir", type=str, default="outputs/inductive")
     inductive_parser.add_argument("--predictors_per_agent", type=int, default=6)
     inductive_parser.add_argument("--beta", type=float, default=1.0, help="Inverse temperature (softmax/recency)")
-    inductive_parser.add_argument("--lambda_decay", type=float, default=0.95, help="Score decay (recency)")
+    inductive_parser.add_argument("--lambda_decay", type=float, default=0.95, help="Score decay (recency/turnover)")
     inductive_parser.add_argument("--selection", choices=["argmax", "softmax"], default="argmax", help="Selection rule (recency)")
+    inductive_parser.add_argument("--patience", type=int, default=10, help="Failure patience (turnover)")
+    inductive_parser.add_argument("--error_threshold", type=float, default=5.0, help="Error threshold (turnover)")
 
     # === heterogeneous ===
     hetero_parser = subparsers.add_parser("heterogeneous", help="Repeated game with mixed populations")

@@ -259,3 +259,161 @@ def plot_payoff_by_type(
     plt.ylabel("Final cumulative payoff")
     plt.title("Final payoff distribution by agent type")
     _finish_plot(output_path)
+
+
+def _predictor_share_matrix(
+    predictor_histories: List[List[int]],
+    n_predictors: int,
+) -> np.ndarray:
+    """Convert predictor histories into a T x K share matrix."""
+    n_agents = len(predictor_histories)
+    if n_agents == 0:
+        raise ValueError("predictor_histories must be non-empty.")
+
+    lengths = {len(h) for h in predictor_histories}
+    if len(lengths) != 1:
+        raise ValueError("All predictor histories must have the same length.")
+
+    T = len(predictor_histories[0])
+    shares = np.zeros((T, n_predictors), dtype=float)
+
+    for t in range(T):
+        for i in range(n_agents):
+            j = predictor_histories[i][t]
+            shares[t, j] += 1.0
+
+    shares /= n_agents
+    return shares
+
+
+def plot_predictor_share_heatmap(
+    predictor_histories: List[List[int]],
+    predictor_names: List[str],
+    output_path: Optional[Path] = None,
+    title: Optional[str] = None,
+) -> None:
+    """
+    Heatmap of predictor usage over time.
+
+    X-axis = round, Y-axis = predictor, color = share of agents using that predictor.
+    """
+    n_agents = len(predictor_histories)
+    if n_agents == 0:
+        return
+
+    K = len(predictor_names)
+    shares = _predictor_share_matrix(predictor_histories, K).T  # K x T
+
+    T = shares.shape[1]
+
+    fig, ax = plt.subplots(figsize=(12, max(4, K * 0.4)))
+
+    im = ax.imshow(
+        shares, aspect="auto", origin="lower", interpolation="nearest",
+        extent=[1, T, 0, K], vmin=0, vmax=shares.max(),
+    )
+
+    ax.set_xlabel("Round")
+    ax.set_ylabel("Predictor")
+    ax.set_yticks(np.arange(K) + 0.5)
+    ax.set_yticklabels(predictor_names, fontsize=9)
+
+    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="Share of agents")
+
+    ax.set_title(title or "Active predictor share over time")
+
+    fig.tight_layout()
+
+    if output_path:
+        fig.savefig(output_path, dpi=200, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_scoring_rule_comparison(
+    attendance_abs: List[int],
+    attendance_virtual: List[int],
+    predictor_histories_abs: List[List[int]],
+    predictor_histories_virtual: List[List[int]],
+    predictor_names: List[str],
+    threshold: int,
+    output_path: Optional[Path] = None,
+) -> None:
+    """
+    Four-panel comparison of absolute-error vs virtual-payoff scoring.
+
+    Top row: attendance deviation (A_t - L) for each game.
+    Bottom row: predictor-share heatmap for each game.
+    """
+    if not attendance_abs or not attendance_virtual:
+        return
+
+    rounds_abs = np.arange(1, len(attendance_abs) + 1)
+    rounds_virtual = np.arange(1, len(attendance_virtual) + 1)
+
+    dev_abs = np.asarray(attendance_abs, dtype=float) - threshold
+    dev_virtual = np.asarray(attendance_virtual, dtype=float) - threshold
+
+    K = len(predictor_names)
+    shares_abs = _predictor_share_matrix(predictor_histories_abs, K).T
+    shares_virtual = _predictor_share_matrix(predictor_histories_virtual, K).T
+
+    fig, axes = plt.subplots(
+        2, 2, figsize=(16, 10), sharex="col",
+        gridspec_kw={"height_ratios": [1, 1.4]},
+    )
+
+    ax1, ax2 = axes[0, 0], axes[0, 1]
+    ax3, ax4 = axes[1, 0], axes[1, 1]
+
+    y_max = max(np.abs(dev_abs).max(), np.abs(dev_virtual).max()) * 1.1
+
+    ax1.plot(rounds_abs, dev_abs, linewidth=1.2)
+    ax1.axhline(0.0, linestyle="--", color="black", linewidth=1.0)
+    ax1.set_ylim(-y_max, y_max)
+    ax1.set_title("Absolute-error scoring")
+    ax1.set_ylabel(r"$A_t - L$")
+
+    ax2.plot(rounds_virtual, dev_virtual, linewidth=1.2)
+    ax2.axhline(0.0, linestyle="--", color="black", linewidth=1.0)
+    ax2.set_ylim(-y_max, y_max)
+    ax2.set_title("Virtual-payoff scoring")
+    ax2.set_ylabel(r"$A_t - L$")
+
+    vmax = max(shares_abs.max(), shares_virtual.max())
+
+    im1 = ax3.imshow(
+        shares_abs, aspect="auto", origin="lower", interpolation="nearest",
+        extent=[1, len(attendance_abs), 0, K], vmin=0, vmax=vmax,
+    )
+    ax3.set_ylabel("Predictor")
+    ax3.set_xlabel("Round")
+    ax3.set_yticks(np.arange(K) + 0.5)
+    ax3.set_yticklabels(predictor_names, fontsize=8)
+    ax3.set_title("Active predictor share")
+
+    im2 = ax4.imshow(
+        shares_virtual, aspect="auto", origin="lower", interpolation="nearest",
+        extent=[1, len(attendance_virtual), 0, K], vmin=0, vmax=vmax,
+    )
+    ax4.set_ylabel("Predictor")
+    ax4.set_xlabel("Round")
+    ax4.set_yticks(np.arange(K) + 0.5)
+    ax4.set_yticklabels(predictor_names, fontsize=8)
+    ax4.set_title("Active predictor share")
+
+    fig.colorbar(im1, ax=ax3, fraction=0.046, pad=0.04, label="Share of agents")
+    fig.colorbar(im2, ax=ax4, fraction=0.046, pad=0.04, label="Share of agents")
+
+    fig.suptitle(
+        "Scoring-rule comparison: separate games with matched initial conditions",
+        fontsize=13,
+    )
+    fig.tight_layout()
+
+    if output_path:
+        fig.savefig(output_path, dpi=200, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()

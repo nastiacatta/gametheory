@@ -18,17 +18,54 @@ from src.agents.base import BaseAgent
 from src.agents.best_predictor_agent import BestPredictorAgent
 from src.agents.fixed_attendance_agent import FixedAttendanceAgent
 from src.agents.fixed_predictor_agent import FixedPredictorAgent
-from src.agents.predictors import default_predictor_library, sample_predictor_library
+from src.agents.predictors import Predictor, default_predictor_library, sample_predictor_library
 from src.agents.producer_agent import ProducerAgent
 from src.agents.random_agent import RandomAgent
 from src.agents.recency_weighted_predictor_agent import RecencyWeightedPredictorAgent
 from src.agents.softmax_predictor_agent import SoftmaxPredictorAgent
+from src.agents.turnover_predictor_agent import TurnoverPredictorAgent
 from src.agents.virtual_payoff_predictor_agent import VirtualPayoffPredictorAgent
 
 
 def _adaptive_bank(rng: np.random.Generator, predictors_per_agent: int):
     """Sample a predictor bank for a single adaptive agent."""
     return sample_predictor_library(rng=rng, k=predictors_per_agent)
+
+
+def sample_predictor_banks(
+    n_players: int,
+    predictors_per_agent: int = 6,
+    seed: int = 42,
+) -> List[List[Tuple[str, Predictor]]]:
+    """Sample predictor banks once, so multiple games can use matched assignments."""
+    _max_k = len(default_predictor_library())
+    if not (1 <= predictors_per_agent <= _max_k):
+        raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
+    rng = np.random.default_rng(seed)
+    return [
+        list(_adaptive_bank(rng, predictors_per_agent))
+        for _ in range(n_players)
+    ]
+
+
+def build_best_predictor_from_banks(
+    banks: List[List[Tuple[str, Predictor]]],
+) -> List[BaseAgent]:
+    """Build a BestPredictor population from pre-sampled banks."""
+    return [
+        BestPredictorAgent(predictors=list(bank))
+        for bank in banks
+    ]
+
+
+def build_virtual_payoff_from_banks(
+    banks: List[List[Tuple[str, Predictor]]],
+) -> List[BaseAgent]:
+    """Build a VirtualPayoffPredictor population from pre-sampled banks."""
+    return [
+        VirtualPayoffPredictorAgent(predictors=list(bank))
+        for bank in banks
+    ]
 
 
 def build_homogeneous_best_predictor(
@@ -173,6 +210,32 @@ def build_homogeneous_recency(
             lambda_decay=lambda_decay,
             selection=selection,
             beta=beta,
+        )
+        for _ in range(n_players)
+    ]
+
+
+def build_homogeneous_turnover(
+    n_players: int,
+    lambda_decay: float = 0.95,
+    patience: int = 10,
+    error_threshold: float = 5.0,
+    predictors_per_agent: int = 6,
+    seed: int = 42,
+) -> List[BaseAgent]:
+    """All agents use turnover predictor selection with hypothesis replacement."""
+    _max_k = len(default_predictor_library())
+    if not (1 <= predictors_per_agent <= _max_k):
+        raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
+    rng = np.random.default_rng(seed)
+    master_lib = default_predictor_library()
+    return [
+        TurnoverPredictorAgent(
+            predictors=_adaptive_bank(rng, predictors_per_agent),
+            lambda_decay=lambda_decay,
+            patience=patience,
+            error_threshold=error_threshold,
+            master_library=master_lib,
         )
         for _ in range(n_players)
     ]
