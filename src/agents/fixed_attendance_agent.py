@@ -1,5 +1,5 @@
 """
-Pure-strategy agent: attend iff predicted_attendance < threshold (uses context.threshold).
+Pure-strategy agent: attend iff predicted_attendance <= threshold (uses context.threshold).
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from src.agents.base import BaseAgent, RoundContext
 
 class FixedAttendanceAgent(BaseAgent):
     """
-    Pure-strategy agent: attend if predicted_attendance < threshold.
+    Pure-strategy agent: attend if predicted_attendance <= threshold.
     Deterministic; does not use the RNG.
     """
 
@@ -22,4 +22,4 @@ class FixedAttendanceAgent(BaseAgent):
 
     def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
         _ = rng
-        return int(self.predicted_attendance < context.threshold)
+        return int(self.predicted_attendance <= context.threshold)

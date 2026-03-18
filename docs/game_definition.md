@@ -1,8 +1,14 @@
-# Minority game definition
+# El Farol Threshold Game: Mathematical Definition
 
-## Static normal-form version
+This document provides the formal game-theoretic definition of the El Farol threshold game implemented in this repository. The model is inspired by Arthur's (1994) inductive reasoning framework but should not be conflated with the canonical Challet–Zhang Minority Game without explicit justification.
 
-We define the single-shot minority game as a normal-form game
+---
+
+## 1. Game Definition
+
+### 1.1 Static Normal-Form Game
+
+We define the single-shot El Farol threshold game as a normal-form game
 
 \[
 \Gamma = \langle N, (A_i)_{i \in N}, (u_i)_{i \in N} \rangle
@@ -10,125 +16,296 @@ We define the single-shot minority game as a normal-form game
 
 where:
 
-- \(N = \{1,\dots,n\}\) is the set of **players**.
-- Each player \(i\) chooses an **action** \(a_i \in A_i = \{0,1\}\):
+- \(N = \{1, \dots, n\}\) is the set of **players** (default: \(n = 101\)).
+- Each player \(i\) chooses an **action** \(a_i \in A_i = \{0, 1\}\):
   - \(a_i = 1\): attend the bar.
   - \(a_i = 0\): stay home.
-- A **pure strategy** for player \(i\) is the action chosen at the sole information set of this simultaneous game.
+- \(L\) is the **capacity threshold** (default: \(L = 60\)).
 
-Let aggregate attendance be
+**Aggregate attendance:**
 
 \[
 A(\mathbf{a}) = \sum_{i=1}^{n} a_i
 \]
 
-and let \(L\) be the attendance threshold (bar capacity).
+### 1.2 Payoff Function (Weak Threshold Convention)
 
-### Payoff convention (Arthur-style strict threshold)
+This implementation uses the **weak threshold** convention, where the bar is enjoyable when attendance is *at or below* capacity:
 
-The payoff for player \(i\) is
 \[
-u_i(\mathbf{a})=
+u_i(\mathbf{a}) =
 \begin{cases}
-+1 & \text{if } a_i = 1 \text{ and } A(\mathbf{a}) < L, \\
--1 & \text{if } a_i = 1 \text{ and } A(\mathbf{a}) \ge L, \\
++1 & \text{if } a_i = 1 \text{ and } A(\mathbf{a}) \le L, \\
+-1 & \text{if } a_i = 1 \text{ and } A(\mathbf{a}) > L, \\
 0 & \text{if } a_i = 0.
 \end{cases}
 \]
 
-This matches Arthur's El Farol statement: the evening is enjoyable only when attendance is strictly below the capacity threshold.
+**Interpretation:**
+- Attendees receive payoff \(+1\) if at most \(L\) people attend.
+- Attendees receive payoff \(-1\) when the bar is over capacity.
+- Staying home yields a neutral payoff of \(0\).
 
-### Pure-strategy Nash equilibria
+**Remark.** Some formulations use a strict inequality (\(A < L\)) for the positive payoff. This shifts equilibrium attendance by one. This repository uses the weak inequality (\(A \le L\)) throughout.
 
-Under this payoff, the unique pure-strategy Nash equilibrium attendance level is
-\[
-A = L - 1.
-\]
+---
 
-- If \(A < L-1\), a stay-home player can deviate to attend and move from \(0\) to \(+1\).
-- If \(A \ge L\), an attending player can deviate to stay home and move from \(-1\) to \(0\).
-- If \(A = L-1\), no attendee wants to switch from \(+1\) to \(0\), and no non-attendee wants to switch from \(0\) to \(-1\).
+## 2. Static Analysis
 
-There are \(\binom{n}{L-1}\) such profiles.
+### 2.1 Pure-Strategy Nash Equilibria
 
-### Symmetric mixed-strategy equilibrium
+**Proposition.** Under the weak threshold payoff, the pure-strategy Nash equilibria are exactly the action profiles \(\mathbf{a}\) with aggregate attendance \(A(\mathbf{a}) = L\).
 
-Under the symmetric mixed strategy where all players use the same \(p\), let
-\[
-X \sim \mathrm{Bin}(n-1, p).
-\]
+*Proof sketch.*
 
-Indifference between attending and staying home requires
-\[
-\mathbb{E}[u_i(1)] = 0,
-\]
-which gives
-\[
-\Pr(X \le L-2) = \tfrac{1}{2}.
-\]
+1. **\(A < L\) is not stable:** Any player with \(a_i = 0\) can deviate to \(a_i = 1\). After deviation, \(A' = A + 1 \le L\), so the deviator's payoff increases from \(0\) to \(+1\).
 
-This determines the symmetric mixed-strategy Nash equilibrium.
+2. **\(A > L\) is not stable:** Any player with \(a_i = 1\) receives payoff \(-1\) and can deviate to \(a_i = 0\), obtaining payoff \(0\).
 
-## Repeated game
+3. **\(A = L\) is stable:**
+   - Every attendee receives \(+1\). Deviating to stay home yields \(0\), which is worse.
+   - Every non-attendee receives \(0\). Deviating to attend gives \(A' = L + 1\), yielding payoff \(-1\), which is worse.
 
-The repeated version uses the same stage game over \(m\) rounds \(t=1,\dots,m\), with cumulative payoff
+**Corollary.** There are exactly \(\binom{n}{L}\) pure-strategy Nash equilibria, corresponding to all ways of selecting \(L\) players to attend.
+
+### 2.2 Symmetric Mixed-Strategy Nash Equilibrium
+
+Consider the symmetric mixed strategy where each player independently attends with probability \(p \in (0, 1)\).
+
+**Proposition.** The symmetric mixed-strategy Nash equilibrium probability \(p^*\) is the unique solution to
 
 \[
-U_i(T) = \sum_{t=1}^{T} u_i^{(t)}.
+\Pr(X \le L - 1) = \frac{1}{2}, \qquad X \sim \mathrm{Bin}(n - 1, p^*).
 \]
 
-Each round, agents observe past attendance history \(H_t = (A_1,\dots,A_{t-1})\) and may adapt their decisions through inductive strategies (see below).
+*Proof sketch.*
 
-## Inductive strategies (Arthur-inspired predictor-based adaptation)
+For player \(i\), let \(X = \sum_{j \ne i} a_j \sim \mathrm{Bin}(n - 1, p)\) denote the attendance of other players.
 
-Each agent \(i\) holds a bank of \(k\) attendance predictors \(f_{ij}\), sampled from a fixed master library. Before round \(t\), each predictor produces a forecast:
+The expected payoff from attending is:
+\[
+\mathbb{E}[u_i(1)] = \Pr(X \le L - 1) \cdot (+1) + \Pr(X > L - 1) \cdot (-1)
+\]
+\[
+= \Pr(X \le L - 1) - \Pr(X \ge L)
+\]
+\[
+= 2 \Pr(X \le L - 1) - 1.
+\]
 
+For indifference between attending (\(\mathbb{E}[u_i(1)] = 0\)) and staying home (\(u_i(0) = 0\)):
+\[
+2 \Pr(X \le L - 1) - 1 = 0 \implies \Pr(X \le L - 1) = \frac{1}{2}.
+\]
+
+**Remark.** For the default parameters \(n = 101\), \(L = 60\), this gives \(\Pr(X \le 59) = 1/2\) where \(X \sim \mathrm{Bin}(100, p^*)\). The equilibrium probability \(p^*\) can be computed numerically.
+
+---
+
+## 3. Repeated Game
+
+### 3.1 Formulation
+
+The repeated version plays the same stage game over \(m\) rounds (default: \(m = 200\)), indexed by \(t = 1, \dots, m\).
+
+**Cumulative payoff:**
+\[
+U_i(T) = \sum_{t=1}^{T} u_i^{(t)}
+\]
+
+where \(u_i^{(t)}\) is player \(i\)'s stage payoff in round \(t\).
+
+**History:** At the start of round \(t\), agents observe the attendance history
+\[
+H_t = (A_1, A_2, \dots, A_{t-1}).
+\]
+
+### 3.2 Scope and Limitations
+
+This repository implements the repeated game as an environment for studying adaptive and inductive strategies. We make the following scope limitations explicit:
+
+1. **No folk-theorem analysis.** We do not derive or claim subgame-perfect equilibria for the infinite-horizon or finitely-repeated versions.
+
+2. **No discounting.** Payoffs are summed without discounting (\(\delta = 1\)).
+
+3. **Adaptive, not strategic.** Agents adapt to history using heuristics; they do not engage in strategic punishment or reward schemes.
+
+The primary purpose of the repeated framework is to study the emergent dynamics of bounded rationality and inductive learning, not to characterise equilibria of the supergame.
+
+---
+
+## 4. Inductive Strategies
+
+### 4.1 Predictor-Based Adaptation
+
+Inspired by Arthur's (1994) description of inductive reasoning, each adaptive agent maintains a finite library of attendance predictors. This implementation does not claim to replicate Arthur's exact predictor list but draws on the same conceptual framework.
+
+**Structure:** Each agent \(i\) holds a bank of \(k\) predictors \(\{f_{i1}, \dots, f_{ik}\}\), sampled from a master library. Before round \(t\), each predictor produces a forecast:
 \[
 \hat{A}_{ij}(t) = f_{ij}(H_t).
 \]
 
-The agent maintains a cumulative accuracy score for each predictor:
-
+**Score updating:** Predictors accumulate accuracy scores:
 \[
-s_{ij}(t+1) = s_{ij}(t) - |\hat{A}_{ij}(t) - A_t|.
+s_{ij}(t+1) = s_{ij}(t) - \lvert \hat{A}_{ij}(t) - A_t \rvert.
 \]
 
-**Implementation note:** This implementation uses a fixed master library of predictors (see `src/agents/predictors.py`). Each adaptive agent is assigned \(k\) predictors sampled without replacement from this master library. This introduces heterogeneity across agents while maintaining reproducibility through seeded sampling.
+Higher scores indicate better historical accuracy.
 
-**Strategy A (best-predictor):**
+### 4.2 Selection Rules
+
+**Best-predictor (hard argmax):**
 \[
 j_i^*(t) = \arg\max_j \, s_{ij}(t), \qquad
-a_i(t) = \mathbf{1}[\hat{A}_{ij_i^*}(t) < L].
+a_i(t) = \mathbf{1}[\hat{A}_{i j_i^*}(t) \le L].
 \]
 
-**Strategy B (softmax / temperature-based):**
+Ties are broken in favour of the lowest-index predictor.
+
+**Softmax (Boltzmann selection):**
 \[
-\Pr(j \mid t) = \frac{e^{\beta \, s_{ij}(t)}}{\sum_{\ell} e^{\beta \, s_{i\ell}(t)}},
+\Pr(j \mid t) = \frac{\exp(\beta \, s_{ij}(t))}{\sum_{\ell} \exp(\beta \, s_{i\ell}(t))},
 \]
-then the agent attends iff the chosen predictor forecasts a value \(< L\).
 
-## Key observables
+where \(\beta \ge 0\) is the inverse temperature. The agent attends if the selected predictor forecasts attendance at or below \(L\).
 
-For the repeated game, the main analysis metrics are:
+- \(\beta = 0\): uniform random selection (pure exploration).
+- \(\beta \to \infty\): hard argmax (pure exploitation).
 
+### 4.3 Terminology Note
+
+The predictors in this implementation are described as **Arthur-inspired** or **inductive heuristics**. We do not claim that Arthur (1994) specified a fixed canonical list of predictors. The master library (see `src/agents/predictors.py`) includes:
+
+- Last-value extrapolation
+- Contrarian (mirror) strategies
+- Rolling means and medians
+- Linear trend extrapolation
+- Lagged-cycle predictors
+
+These are motivated by bounded rationality and pattern-seeking behaviour, consistent with the spirit of inductive reasoning in Arthur's framework.
+
+---
+
+## 5. Relation to the Minority Game Literature
+
+### 5.1 Distinction from the Canonical Minority Game
+
+The El Farol threshold game implemented here is related to but distinct from the **canonical Minority Game** of Challet and Zhang (1997). Key differences:
+
+| Feature | This Implementation | Canonical MG |
+|---------|---------------------|--------------|
+| Action space | \(\{0, 1\}\) (attend/stay) | \(\{-1, +1\}\) (symmetric) |
+| Payoff | Threshold-based (\(A \le L\)) | Sign of \(-a_i \cdot A\) |
+| Memory | Attendance history | Binary outcome history of length \(M\) |
+| Strategy space | Predictor library | \(2^{2^M}\) lookup tables |
+| Control parameter | Threshold \(L\) | \(\alpha = 2^M / N\) |
+
+### 5.2 Canonical Minority Game Notation (for Reference)
+
+For readers familiar with the Minority Game literature, we provide the standard notation:
+
+- Actions: \(a_i(t) \in \{-1, +1\}\)
+- Aggregate: \(A(t) = \sum_{i=1}^{N} a_i(t)\)
+- Memory length: \(M\)
+- Number of possible histories: \(P = 2^M\)
+- Control parameter: \(\alpha = P / N = 2^M / N\)
+- Volatility: \(\sigma^2 = \frac{1}{T} \sum_{t=1}^{T} A(t)^2\)
+- Predictability: \(H = \frac{1}{P} \sum_{\mu=1}^{P} \langle A \mid \mu \rangle^2\)
+
+### 5.3 What This Implementation Does Not Include
+
+This repository does **not** implement:
+
+1. The standard MG strategy space (binary lookup tables over \(\{0,1\}^M\)).
+2. The \(\alpha = 2^M / N\) control parameter structure.
+3. The phase transition at \(\alpha_c \approx 0.34\).
+4. Standard MG observables such as \(\sigma^2 / N\) scaling or predictability \(H\).
+
+Any comparison to canonical MG results should be made with care. The inductive adaptation in this repo is inspired by Arthur's El Farol framework, not the Challet–Zhang MG architecture.
+
+---
+
+## 6. Evaluation Metrics
+
+### 6.1 Threshold-Centred Metrics
+
+The primary analysis metrics are centred on the threshold \(L\), reflecting the El Farol model structure:
+
+**Variance from threshold:**
 \[
-\sigma_L^2 = \frac{1}{T}\sum_{t=1}^{T}(A_t - L)^2, \qquad
-\mathrm{MAD}_L = \frac{1}{T}\sum_{t=1}^{T} |A_t - L|,
+\sigma_L^2 = \frac{1}{T} \sum_{t=1}^{T} (A_t - L)^2
 \]
 
+**Mean absolute deviation from threshold:**
 \[
-\mathrm{OvercrowdingRate} = \frac{1}{T}\sum_{t=1}^{T}\mathbf{1}[A_t \ge L],
+\mathrm{MAD}_L = \frac{1}{T} \sum_{t=1}^{T} |A_t - L|
 \]
 
+**Overcrowding rate:**
 \[
-\bar{U}(T) = \frac{1}{n}\sum_{i=1}^{n} U_i(T), \qquad
-\mathrm{sd}_U(T) = \sqrt{\frac{1}{n}\sum_{i=1}^{n}(U_i(T) - \bar{U}(T))^2},
+\mathrm{OvercrowdingRate} = \frac{1}{T} \sum_{t=1}^{T} \mathbf{1}[A_t > L]
 \]
 
+### 6.2 Payoff Metrics
+
+**Mean cumulative payoff:**
 \[
-\mathrm{SwitchRate} = \frac{1}{n(T-1)}\sum_{i=1}^{n}\sum_{t=2}^{T}\mathbf{1}[j_i(t) \neq j_i(t-1)].
+\bar{U}(T) = \frac{1}{n} \sum_{i=1}^{n} U_i(T)
 \]
 
-In this repo, SwitchRate is computed for inductive experiments that store predictor histories; it is not part of the base repeated_summary.csv exported by RepeatedGameResult.summary().
+**Payoff dispersion:**
+\[
+\mathrm{sd}_U(T) = \sqrt{\frac{1}{n} \sum_{i=1}^{n} (U_i(T) - \bar{U}(T))^2}
+\]
 
-This project uses the El Farol threshold version with default values \(n=101\), \(L=60\), and \(m=200\).
+### 6.3 Adaptation Metrics
+
+**Predictor switch rate** (for inductive agents):
+\[
+\mathrm{SwitchRate} = \frac{1}{n(T-1)} \sum_{i=1}^{n} \sum_{t=2}^{T} \mathbf{1}[j_i(t) \ne j_i(t-1)]
+\]
+
+### 6.4 Note on Volatility
+
+When "volatility" is reported, it refers to \(\sigma_L^2\) (threshold-deviation volatility), **not** the canonical MG volatility \(\sigma^2 = \frac{1}{T} \sum_t A_t^2\). The distinction is important: threshold-deviation volatility measures coordination efficiency around the capacity constraint, while MG volatility measures total fluctuation around zero.
+
+---
+
+## 7. Limitations and Scope
+
+### 7.1 Modelling Limitations
+
+1. **Symmetric agents.** The base model assumes homogeneous agents with identical action spaces and payoff functions. Heterogeneous experiments extend this but do not change the underlying payoff structure.
+
+2. **No outside option dynamics.** The stay-home payoff is fixed at \(0\). In reality, alternative activities may have variable attractiveness.
+
+3. **Perfect observation.** All agents observe exact aggregate attendance. In practice, agents might have noisy or delayed information.
+
+### 7.2 Theoretical Limitations
+
+1. **No equilibrium selection.** With \(\binom{n}{L}\) pure-strategy NE, we do not address which equilibrium might emerge from learning dynamics.
+
+2. **No convergence guarantees.** The inductive strategies are heuristics without proven convergence to Nash equilibrium or correlated equilibrium.
+
+3. **No welfare analysis.** We report payoff distributions but do not formally analyse social welfare or efficiency.
+
+### 7.3 Claims Not Made
+
+To avoid overclaiming, we explicitly note that this repository:
+
+- Does **not** prove that inductive agents converge to equilibrium.
+- Does **not** replicate the canonical MG phase transition.
+- Does **not** claim that Arthur (1994) specified the exact predictors used here.
+- Does **not** derive folk-theorem results for the repeated game.
+
+---
+
+## References
+
+- Arthur, W. B. (1994). Inductive reasoning and bounded rationality. *American Economic Review*, 84(2), 406–411.
+- Challet, D., & Zhang, Y.-C. (1997). Emergence of cooperation and organization in an evolutionary game. *Physica A*, 246, 407–418.
+- Challet, D., Marsili, M., & Zhang, Y.-C. (2005). *Minority Games: Interacting Agents in Financial Markets*. Oxford University Press.
+
+---
+
+**Implementation defaults:** \(n = 101\), \(L = 60\), \(m = 200\), seed = 42.

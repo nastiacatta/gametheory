@@ -1,8 +1,8 @@
 """ Stage-game payoff rules for the El Farol / threshold minority game.
 
-Arthur-style strict threshold:
-u_i(a) = +1 if a_i = 1 and A < L
-         -1 if a_i = 1 and A >= L
+Weak-threshold convention:
+u_i(a) = +1 if a_i = 1 and A <= L
+         -1 if a_i = 1 and A > L
           0 if a_i = 0
 where A = sum_i a_i is total attendance and L is the threshold (capacity).
 """
@@ -28,7 +28,7 @@ def payoff_for_action(action: int, attendance: int, threshold: int) -> int:
     validate_action(action)
     if action == 0:
         return 0
-    return 1 if attendance < threshold else -1
+    return 1 if attendance <= threshold else -1
 
 
 def payoffs_for_actions(actions: Iterable[int], threshold: int) -> List[int]:
@@ -56,5 +56,5 @@ def build_stage_outcome(actions: Iterable[int], threshold: int) -> StageOutcome:
         actions=action_list,
         attendance=attendance,
         payoffs=payoffs,
-        overcrowded=attendance >= threshold,
+        overcrowded=attendance > threshold,
     )

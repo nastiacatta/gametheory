@@ -1,7 +1,8 @@
 """
-Single-shot (static) minority game: one round, no learning.
+Single-shot (static) El Farol threshold game: one round, no learning.
 
 Returns per-player actions and payoffs for a given (n, L) and agent list.
+Uses strict threshold payoff convention (A < L for positive payoff).
 """
 
 from __future__ import annotations
@@ -30,7 +31,7 @@ class StaticGameResult:
 
 class StaticMinorityGame:
     """
-    Single-shot threshold minority game.
+    Single-shot El Farol threshold game.
     All randomness is via the provided seed; agents receive RoundContext and shared RNG.
     """
 

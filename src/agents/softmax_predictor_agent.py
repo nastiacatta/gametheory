@@ -9,6 +9,8 @@ predictor is chosen stochastically via a Boltzmann / softmax distribution:
 beta = 0  =>  uniform random choice  (pure exploration)
 beta -> inf  =>  hard argmax         (pure exploitation)
 
+Agent attends iff the chosen predictor forecasts attendance <= threshold.
+
 Inspired by predictor-based inductive strategies; not an exact replication.
 """
 
@@ -59,7 +61,7 @@ class SoftmaxPredictorAgent(BaseAgent):
         self._active_idx = chosen_idx
         self.predictor_history.append(chosen_idx)
 
-        return int(predictions[chosen_idx] < context.threshold)
+        return int(predictions[chosen_idx] <= context.threshold)
 
     def update(
         self,

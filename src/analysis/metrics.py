@@ -33,9 +33,9 @@ def mad_from_threshold(attendance_history: List[int], threshold: int) -> float:
 
 
 def overcrowding_rate(attendance_history: List[int], threshold: int) -> float:
-    """Fraction of rounds with A_t >= L (Arthur-style strict threshold)."""
+    """Fraction of rounds with A_t > L."""
     arr = np.array(attendance_history, dtype=float)
-    return float(np.mean(arr >= threshold))
+    return float(np.mean(arr > threshold))
 
 
 def mean_cumulative_payoff(cumulative_payoffs: List[int]) -> float:

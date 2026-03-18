@@ -1,6 +1,8 @@
-# Minority Game: Static and Repeated Simulators
+# El Farol Threshold Game: Static and Repeated Simulations
 
-Simulation code for the El Farol / threshold minority game in normal-form: configurable player count *n*, capacity threshold *L*, and round count *m* for the repeated game. Implemented for coursework; designed for reproducibility and extension (e.g. inductive strategies).
+Simulation code for the El Farol threshold game in normal form, with minority-game-inspired inductive extensions. Configurable player count \(n\), capacity threshold \(L\), and horizon \(m\) for the repeated game. Designed for coursework; emphasis on reproducibility and theoretical accuracy.
+
+**Note:** This implementation is based on Arthur's (1994) El Farol problem and should not be conflated with the canonical Challet–Zhang Minority Game without explicit justification. See `docs/game_definition.md` for the precise mathematical distinction.
 
 ## Requirements
 
@@ -10,10 +12,10 @@ Simulation code for the El Farol / threshold minority game in normal-form: confi
 ## Reproducibility
 
 - All randomness is driven by a **seed** (default `42`). Use `--seed` to reproduce runs.
-- Dependency versions use bounded ranges in `requirements.txt` (e.g. `numpy>=1.24,<3`) for consistent environments; not strictly pinned to exact versions.
-- Run from the **project root** so that `src` is on the module path (e.g. `python -m src.main`).
+- Dependency versions use bounded ranges in `requirements.txt` for consistent environments.
+- Run from the **project root** so that `src` is on the module path (e.g., `python -m src.main`).
 
-## Quickstart (clean run)
+## Quickstart
 
 ```bash
 # From the project root:
@@ -25,13 +27,9 @@ python -m pip install -r requirements.txt
 python -m pytest
 ```
 
-## Running the code
+## Running the Code
 
-The default coursework-style parameters are **n=101**, **L=60**, **m=200**.
-
-Notes:
-- **Threshold convention**: attendees are treated as having a good outcome only when \(A \le L\).
-- **Adaptive experiments**: use a shared master predictor library, but each adaptive agent is assigned its own sampled predictor bank for heterogeneity.
+Default coursework parameters: **n = 101**, **L = 60**, **m = 200**.
 
 **Static (single-shot) game:**
 
@@ -45,16 +43,74 @@ python -m src.main static [--n_players 101] [--threshold 60] [--seed 42]
 python -m src.main repeated [--n_players 101] [--threshold 60] [--n_rounds 200] [--seed 42] [--output_dir outputs]
 ```
 
-Outputs (CSVs and figures) are written to `--output_dir`; the directory is created if it does not exist. The repeated runner writes:
+Outputs (CSVs and figures) are written to `--output_dir`. The repeated runner writes:
 
 - `repeated_rounds.csv`: round-by-round attendance, overcrowding, mean round payoff
 - `repeated_players.csv`: player-level cumulative payoffs
-- `repeated_summary.csv`: summary metrics (including threshold-centred deviation measures)
+- `repeated_summary.csv`: summary metrics (threshold-centred deviation measures)
 - `attendance_over_time.png`, `cumulative_average_attendance.png`
 
-## Tests
+## Game Definition (Strict Threshold)
 
-From the project root:
+This implementation uses the **strict threshold** convention:
+
+- Each player chooses **attend** (1) or **stay home** (0).
+- Let \(A = \sum_i a_i\) be total attendance and \(L\) be the capacity threshold.
+- Payoffs:
+  - If \(A < L\): attendees receive \(+1\).
+  - If \(A \ge L\): attendees receive \(-1\).
+  - Stay home: \(0\) (neutral).
+
+**Pure-strategy Nash equilibria:** Exactly the profiles with \(A = L - 1\). There are \(\binom{n}{L-1}\) such equilibria.
+
+**Symmetric mixed equilibrium:** The equilibrium probability \(p^*\) satisfies \(\Pr(X \le L-2) = 1/2\) where \(X \sim \mathrm{Bin}(n-1, p^*)\).
+
+See `docs/game_definition.md` for full definitions, proofs, and theoretical analysis.
+
+## Inductive Strategies and Experiments
+
+**Agents:** `RandomAgent`, `FixedAttendanceAgent`, `BestPredictorAgent` (Arthur-inspired argmax), `SoftmaxPredictorAgent` (temperature-based), `ProducerAgent` (non-adaptive noisy threshold).
+
+**Predictor-based adaptation:** Agents maintain accuracy scores for a bank of forecasting heuristics. The master library (`src/agents/predictors.py`) includes last-value, contrarian, rolling mean/median, linear trend, and lagged-cycle predictors. These are **Arthur-inspired inductive heuristics**, not a reconstruction of any canonical predictor list.
+
+**Experiment runners:**
+
+```bash
+python -m src.experiments.run_repeated_baselines --n_rounds 200 --output_dir outputs/baselines
+python -m src.experiments.run_inductive --mode best --n_rounds 200 --output_dir outputs/inductive
+python -m src.experiments.run_inductive --mode softmax --beta 1.0 --n_rounds 200
+python -m src.experiments.run_heterogeneous --mode mix --p_best 0.4 --p_softmax 0.4 --p_random 0.2 --n_rounds 200
+python -m src.experiments.run_heterogeneous --mode producer_speculator --n_producers 50 --n_rounds 200
+```
+
+Each experiment writes `rounds.csv`, `players.csv`, `summary.csv` plus figures into its `--output_dir`.
+
+## Analysis Metrics
+
+**Threshold-centred metrics:**
+- Variance from threshold: \(\sigma_L^2 = \frac{1}{T} \sum_t (A_t - L)^2\)
+- MAD from threshold: \(\mathrm{MAD}_L = \frac{1}{T} \sum_t |A_t - L|\)
+- Overcrowding rate: fraction of rounds with \(A_t \ge L\)
+
+**Payoff metrics:**
+- Mean cumulative payoff
+- Payoff dispersion (standard deviation across agents)
+
+**Note:** When volatility is reported, it refers to threshold-deviation volatility (\(\sigma_L^2\)), **not** canonical Minority Game volatility.
+
+## Relation to the Minority Game
+
+This implementation is an **El Farol threshold game** with **minority-game-inspired** inductive adaptation. It is **not** the canonical Challet–Zhang Minority Game, which uses:
+
+- Symmetric action space \(\{-1, +1\}\)
+- Binary history of length \(M\)
+- Strategy tables mapping histories to actions
+- Control parameter \(\alpha = 2^M / N\)
+- Phase transition at \(\alpha_c \approx 0.34\)
+
+This repository does not implement standard MG strategy spaces, the \(\alpha\) parameter structure, or phase transition analysis. See `docs/game_definition.md` Section 5 for detailed comparison.
+
+## Tests
 
 ```bash
 pytest
@@ -64,7 +120,7 @@ pytest -v
 
 Tests cover payoff logic, configs, population builders, experiment runners, the static game, and the repeated game.
 
-## Project layout
+## Project Layout
 
 ```
 .
@@ -80,12 +136,12 @@ Tests cover payoff logic, configs, population builders, experiment runners, the 
 │   │   ├── base.py
 │   │   ├── random_agent.py
 │   │   ├── fixed_attendance_agent.py
-│   │   ├── predictors.py       # Arthur-inspired fixed predictor master library
+│   │   ├── predictors.py       # Arthur-inspired predictor library
 │   │   ├── best_predictor_agent.py
 │   │   ├── softmax_predictor_agent.py
 │   │   └── producer_agent.py
 │   ├── analysis/
-│   │   ├── metrics.py
+│   │   ├── metrics.py          # Threshold-centred and payoff metrics
 │   │   ├── plots.py
 │   │   └── export.py
 │   ├── experiments/
@@ -94,8 +150,8 @@ Tests cover payoff logic, configs, population builders, experiment runners, the 
 │   │   ├── run_inductive.py
 │   │   └── run_heterogeneous.py
 │   └── game/
-│       ├── payoff.py      # Payoff rules (threshold formulation)
-│       ├── static_game.py # Single-shot game
+│       ├── payoff.py           # Stage payoff (strict threshold)
+│       ├── static_game.py      # Single-shot game
 │       └── repeated_game.py
 ├── tests/
 │   ├── conftest.py
@@ -103,44 +159,15 @@ Tests cover payoff logic, configs, population builders, experiment runners, the 
 │   ├── test_payoff.py
 │   ├── test_static_game.py
 │   ├── test_repeated_game.py
+│   ├── test_predictors.py
 │   └── test_populations.py
 ├── docs/
-│   ├── game_definition.md
-│   ├── report_outline.md
+│   ├── game_definition.md      # Full mathematical definition
+│   ├── report_outline.md       # Suggested report structure
 │   └── genai_declaration.md
-└── outputs/               # Generated CSVs and figures (git-ignored)
+└── outputs/                    # Generated CSVs and figures (git-ignored)
 ```
 
-## Game definition (Arthur-style strict threshold)
+## Licence and Use
 
-- Each player chooses **attend** (1) or **stay home** (0).
-- *A* = total attendance. *L* = capacity threshold.
-- If *A* < *L*: attendees receive payoff +1.
-- If *A* ≥ *L*: attendees receive payoff -1.
-- Stay home: payoff 0 (neutral).
-
-**Report requirement:** The brief allows consistent definitions but does not force a unique stay-home utility. You must state explicitly in the report that stay-home payoff is 0 (neutral); otherwise the marker may assume a different formulation.
-
-See `docs/game_definition.md` for the full normal-form definition, Nash equilibria, and inductive strategies.
-
-## Inductive strategies and experiments
-
-**Agents:** `RandomAgent`, `FixedAttendanceAgent`, `BestPredictorAgent` (Arthur-inspired), `SoftmaxPredictorAgent` (temperature-based), `ProducerAgent` (non-adaptive noisy threshold).
-
-**Experiment runners:**
-
-```bash
-python -m src.experiments.run_repeated_baselines --n_rounds 200 --output_dir outputs/baselines
-python -m src.experiments.run_inductive --mode best --n_rounds 200 --output_dir outputs/inductive
-python -m src.experiments.run_inductive --mode softmax --beta 1.0 --n_rounds 200
-python -m src.experiments.run_heterogeneous --mode mix --p_best 0.4 --p_softmax 0.4 --p_random 0.2 --n_rounds 200
-python -m src.experiments.run_heterogeneous --mode producer_speculator --n_producers 50 --n_rounds 200
-```
-
-Note: For `--mode mix`, shares `--p_best`, `--p_softmax`, `--p_random` must sum to 1.0. For `--mode producer_speculator`, producer base prediction defaults to `--threshold` unless `--producer_base_prediction` is specified.
-
-Each experiment runner writes `rounds.csv`, `players.csv`, `summary.csv` plus figures into its `--output_dir`.
-
-## Licence and use
-
-For academic use in line with the coursework instructions. See `docs/genai_declaration.md` for generative-AI disclosure.
+For academic use in line with coursework instructions. See `docs/genai_declaration.md` for generative-AI disclosure.

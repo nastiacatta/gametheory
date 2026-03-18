@@ -1,8 +1,9 @@
 """
-Repeated minority game: same agents over m rounds, cumulative payoffs.
+Repeated El Farol threshold game: same agents over m rounds, cumulative payoffs.
 
 Provides summary statistics, DataFrames for rounds/players, and optional
-CSV/plot output for report-ready analysis.
+CSV/plot output for report-ready analysis. Uses strict threshold payoff
+convention (A < L for positive payoff).
 """
 
 from __future__ import annotations
@@ -110,7 +111,8 @@ class RepeatedGameResult:
 
 class RepeatedMinorityGame:
     """
-    Repeated threshold minority game using the same agents across rounds.
+    Repeated El Farol threshold game using the same agents across rounds.
+    Cumulative payoff: U_i(T) = sum_{t=1}^T u_i^{(t)}.
     """
 
     def __init__(

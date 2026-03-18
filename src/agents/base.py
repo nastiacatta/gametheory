@@ -1,10 +1,9 @@
 """
-Base agent interface for the minority game.
+Base agent interface for the El Farol threshold game.
 
-The coursework brief motivates repeated play where agents observe the
-attendance history and may adapt between rounds (Arthur-inspired inductive
-predictors). For that reason, agents receive a round context containing
-the shared state they may condition on.
+Agents observe the attendance history and may adapt between rounds using
+Arthur-inspired inductive heuristics. Each agent receives a round context
+containing the shared state they may condition on.
 """
 
 from __future__ import annotations
