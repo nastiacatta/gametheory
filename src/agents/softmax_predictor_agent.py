@@ -44,7 +44,7 @@ class SoftmaxPredictorAgent(BaseAgent):
 
     def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
         predictions = [
-            p(context.history, context.n_players, context.threshold) for p in self.predictors
+            p(context.attendance_history, context.n_players, context.threshold) for p in self.predictors
         ]
         self._last_predictions = predictions
 

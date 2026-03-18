@@ -44,15 +44,19 @@ class RepeatedGameResult:
         return [round_result.overcrowded for round_result in self.rounds]
 
     def summary(self) -> Dict[str, float]:
+        """Summary keys aligned with analysis.metrics.compute_all_metrics."""
         if not self.rounds:
             return {
                 "n_rounds": 0.0,
                 "mean_attendance": float("nan"),
+                "std_attendance": float("nan"),
+                "variance_from_threshold": float("nan"),
+                "mad_from_threshold": float("nan"),
+                "overcrowding_rate": float("nan"),
                 "mean_cumulative_payoff": float("nan"),
+                "std_cumulative_payoff": float("nan"),
                 "min_cumulative_payoff": float("nan"),
                 "max_cumulative_payoff": float("nan"),
-                "fraction_overcrowded": float("nan"),
-                "std_attendance": float("nan"),
             }
 
         attendance = np.array(self.attendance_history, dtype=float)
@@ -62,8 +66,11 @@ class RepeatedGameResult:
             "n_rounds": float(len(self.rounds)),
             "mean_attendance": float(attendance.mean()),
             "std_attendance": float(attendance.std()),
-            "fraction_overcrowded": float(np.mean(self.overcrowded_rounds)),
+            "variance_from_threshold": float(np.mean((attendance - self.threshold) ** 2)),
+            "mad_from_threshold": float(np.mean(np.abs(attendance - self.threshold))),
+            "overcrowding_rate": float(np.mean(self.overcrowded_rounds)),
             "mean_cumulative_payoff": float(cumulative.mean()),
+            "std_cumulative_payoff": float(cumulative.std()),
             "min_cumulative_payoff": float(cumulative.min()),
             "max_cumulative_payoff": float(cumulative.max()),
         }
@@ -164,7 +171,7 @@ class RepeatedMinorityGame:
             context = RoundContext(
                 n_players=self.n_players,
                 threshold=self.threshold,
-                history=history_before,
+                attendance_history=history_before,
                 round_index=t,
             )
             actions = [

@@ -26,18 +26,14 @@ class RoundContext:
     Attributes:
         n_players: total number of players in the game.
         threshold: attendance threshold L.
-        history: realised attendance history before the current round.
+        attendance_history: realised attendance history before the current round.
         round_index: 0-based round index for repeated play; None for single-shot.
     """
 
     n_players: int
     threshold: int
-    history: tuple[int, ...]
+    attendance_history: tuple[int, ...]
     round_index: int | None = None
-
-    @property
-    def attendance_history(self) -> tuple[int, ...]:
-        return self.history
 
 
 class BaseAgent(ABC):

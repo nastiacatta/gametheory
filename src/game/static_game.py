@@ -60,7 +60,7 @@ class StaticMinorityGame:
         context = RoundContext(
             n_players=self.n_players,
             threshold=self.threshold,
-            history=history_tuple,
+            attendance_history=history_tuple,
             round_index=None,
         )
         actions = [

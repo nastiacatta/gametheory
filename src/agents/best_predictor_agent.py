@@ -42,7 +42,7 @@ class BestPredictorAgent(BaseAgent):
         # This agent does not need randomness for selection, but uses RNG signature for consistency.
         _ = rng
         predictions = [
-            p(context.history, context.n_players, context.threshold) for p in self.predictors
+            p(context.attendance_history, context.n_players, context.threshold) for p in self.predictors
         ]
         self._last_predictions = predictions
 

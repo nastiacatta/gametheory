@@ -37,7 +37,7 @@ def test_repeated_game_cumulative_payoffs() -> None:
     summary = result.summary()
     assert summary["n_rounds"] == 4.0
     assert summary["mean_attendance"] == 2.0
-    assert summary["fraction_overcrowded"] == 0.0
+    assert summary["overcrowding_rate"] == 0.0
 
 
 def test_repeated_game_rejects_even_n() -> None:
