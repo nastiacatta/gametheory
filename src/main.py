@@ -345,6 +345,7 @@ def run_static_sweep(args: argparse.Namespace) -> None:
     print(f"  - figures/static_payoff_vs_p.png")
     print(f"  - figures/static_attendance_vs_p.png")
     print(f"  - figures/static_overcrowding_vs_p.png")
+    print(f"  - figures/static_counts_vs_p.png")
     
     p_capacity = args.threshold / args.n_players
     idx = (df["p"] - p_capacity).abs().idxmin()

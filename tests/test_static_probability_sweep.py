@@ -238,6 +238,46 @@ class TestRunProbabilitySweep:
         assert best_p > 0.3
 
 
+class TestOutputFiles:
+    """Tests for generated output files."""
+
+    def test_counts_plot_created(self, tmp_path) -> None:
+        """Counts plot should be created."""
+        run_probability_sweep(
+            n_players=21,
+            threshold=10,
+            n_samples=100,
+            grid_size=11,
+            seed=42,
+            output_dir=str(tmp_path),
+        )
+        
+        counts_path = tmp_path / "figures" / "static_counts_vs_p.png"
+        assert counts_path.exists()
+
+    def test_all_expected_outputs_created(self, tmp_path) -> None:
+        """All expected output files should be created."""
+        run_probability_sweep(
+            n_players=21,
+            threshold=10,
+            n_samples=100,
+            grid_size=11,
+            seed=42,
+            output_dir=str(tmp_path),
+        )
+        
+        expected_files = [
+            tmp_path / "tables" / "static_probability_sweep.csv",
+            tmp_path / "figures" / "static_payoff_vs_p.png",
+            tmp_path / "figures" / "static_attendance_vs_p.png",
+            tmp_path / "figures" / "static_overcrowding_vs_p.png",
+            tmp_path / "figures" / "static_counts_vs_p.png",
+        ]
+        
+        for f in expected_files:
+            assert f.exists(), f"Missing: {f}"
+
+
 class TestPayoffConsistencyWithCoreModel:
     """Tests that verify the sweep uses the same payoff rule as src/game/payoff.py."""
 

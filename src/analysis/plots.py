@@ -154,6 +154,71 @@ def plot_static_overcrowding_vs_p(
         plt.show()
 
 
+def plot_static_counts_vs_p(
+    df: pd.DataFrame,
+    threshold: int,
+    n_players: int,
+    output_path: Optional[Path] = None,
+) -> None:
+    """
+    Plot average number of agents in each payoff bucket (+1, -1, 0) vs probability p.
+    
+    Args:
+        df: DataFrame from run_probability_sweep with columns 'p',
+            'mean_n_positive', 'mean_n_negative', 'mean_n_zero'.
+        threshold: Capacity threshold L.
+        n_players: Number of players.
+        output_path: If provided, save figure to this path.
+    """
+    if df.empty or "p" not in df.columns:
+        return
+    
+    required_cols = {"mean_n_positive", "mean_n_negative", "mean_n_zero"}
+    if not required_cols.issubset(df.columns):
+        return
+    
+    p_capacity = threshold / n_players
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    ax.plot(
+        df["p"], df["mean_n_positive"],
+        linewidth=2, color="green", label="+1 agents (attended, not crowded)"
+    )
+    ax.plot(
+        df["p"], df["mean_n_negative"],
+        linewidth=2, color="red", label="-1 agents (attended, overcrowded)"
+    )
+    ax.plot(
+        df["p"], df["mean_n_zero"],
+        linewidth=2, color="steelblue", label="0 agents (stayed home)"
+    )
+    
+    ax.axvline(
+        p_capacity,
+        linestyle="--",
+        color="gray",
+        linewidth=1.5,
+        alpha=0.7,
+        label=f"Capacity benchmark (p = L/n = {p_capacity:.3f})",
+    )
+    
+    ax.set_xlabel("Attendance probability p", fontsize=12)
+    ax.set_ylabel("Average number of agents per game", fontsize=12)
+    ax.set_title(f"Static Game: Payoff Counts vs Attendance Probability (n={n_players}, L={threshold})")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, n_players)
+    ax.legend(loc="center right")
+    ax.grid(True, alpha=0.3)
+    
+    fig.tight_layout()
+    if output_path:
+        fig.savefig(output_path, dpi=200)
+        plt.close(fig)
+    else:
+        plt.show()
+
+
 # =============================================================================
 # Repeated game plots
 # =============================================================================
