@@ -4,7 +4,7 @@ Unified CLI for the El Farol threshold minority game.
 Subcommands:
     static      - Single-shot game
     repeated    - Repeated game with basic populations
-    inductive   - Repeated game with inductive agents (best, softmax, recency, turnover)
+    inductive   - Repeated game with inductive agents (best, softmax, recency, virtual_payoff)
     heterogeneous - Repeated game with mixed populations
     sweep       - Parameter sweep over multiple seeds and modes
 
@@ -37,10 +37,12 @@ from src.config import RepeatedGameConfig, StaticGameConfig
 from src.experiments.populations import (
     build_fixed_predictor_population,
     build_heterogeneous,
+    build_heterogeneous_fixed_predictor,
     build_homogeneous_best_predictor,
+    build_homogeneous_fixed_predictor,
     build_homogeneous_recency,
     build_homogeneous_softmax,
-    build_homogeneous_turnover,
+    build_homogeneous_virtual_payoff,
     build_producer_speculator,
 )
 from src.experiments.run_repeated_fixed_strategy import bootstrap_history
@@ -73,6 +75,20 @@ def build_basic_agents(args: argparse.Namespace) -> List[BaseAgent]:
 
     if args.population == "fixed_predictor":
         return build_fixed_predictor_population(
+            n_players=n_players,
+            seed=args.seed,
+            cover_all_predictors=True,
+        )
+
+    if args.population == "homogeneous_fixed_predictor":
+        predictor_name = getattr(args, "predictor_name", "last_value")
+        return build_homogeneous_fixed_predictor(
+            n_players=n_players,
+            predictor_name=predictor_name,
+        )
+
+    if args.population == "heterogeneous_fixed_predictor":
+        return build_heterogeneous_fixed_predictor(
             n_players=n_players,
             seed=args.seed,
             cover_all_predictors=True,
@@ -120,9 +136,9 @@ def run_repeated(args: argparse.Namespace) -> None:
     )
     agents = build_basic_agents(args)
 
-    # Use bootstrap history for fixed_predictor population
+    # Use bootstrap history for fixed_predictor populations
     init_history = None
-    if args.population == "fixed_predictor":
+    if args.population in ("fixed_predictor", "homogeneous_fixed_predictor", "heterogeneous_fixed_predictor"):
         init_history = bootstrap_history(
             n_players=config.n_players,
             threshold=config.threshold,
@@ -142,7 +158,7 @@ def run_repeated(args: argparse.Namespace) -> None:
 
     summary = result.summary()
     print("=== REPEATED GAME ===")
-    if args.population == "fixed_predictor":
+    if args.population in ("fixed_predictor", "homogeneous_fixed_predictor", "heterogeneous_fixed_predictor"):
         print(f"Bootstrap history: {init_history}")
     for key, value in summary.items():
         print(f"{key}={value}")
@@ -183,12 +199,9 @@ def run_inductive(args: argparse.Namespace) -> None:
             predictors_per_agent=args.predictors_per_agent,
             seed=config.seed,
         )
-    elif args.mode == "turnover":
-        agents = build_homogeneous_turnover(
+    elif args.mode == "virtual_payoff":
+        agents = build_homogeneous_virtual_payoff(
             config.n_players,
-            lambda_decay=args.lambda_decay,
-            patience=args.patience,
-            error_threshold=args.error_threshold,
             predictors_per_agent=args.predictors_per_agent,
             seed=config.seed,
         )
@@ -391,9 +404,14 @@ def build_parser() -> argparse.ArgumentParser:
     static_parser.add_argument("--n_players", type=int, default=101)
     static_parser.add_argument("--threshold", type=int, default=60)
     static_parser.add_argument("--seed", type=int, default=42)
-    static_parser.add_argument("--population", choices=["random", "fixed", "mixed"], default="random")
+    static_parser.add_argument(
+        "--population",
+        choices=["random", "fixed", "mixed", "homogeneous_fixed_predictor", "heterogeneous_fixed_predictor"],
+        default="random",
+    )
     static_parser.add_argument("--p_attend", type=float, default=0.55)
     static_parser.add_argument("--predicted_attendance", type=int, default=58)
+    static_parser.add_argument("--predictor_name", type=str, default="last_value")
 
     # === repeated ===
     repeated_parser = subparsers.add_parser("repeated", help="Repeated game with basic populations")
@@ -404,16 +422,17 @@ def build_parser() -> argparse.ArgumentParser:
     repeated_parser.add_argument("--output_dir", type=str, default="outputs/repeated")
     repeated_parser.add_argument(
         "--population",
-        choices=["random", "fixed", "mixed", "fixed_predictor"],
+        choices=["random", "fixed", "mixed", "fixed_predictor", "homogeneous_fixed_predictor", "heterogeneous_fixed_predictor"],
         default="fixed_predictor",
         help="Population type (default: fixed_predictor = Repeated Fixed Strategy baseline)"
     )
     repeated_parser.add_argument("--p_attend", type=float, default=0.55)
     repeated_parser.add_argument("--predicted_attendance", type=int, default=58)
+    repeated_parser.add_argument("--predictor_name", type=str, default="last_value")
 
     # === inductive ===
     inductive_parser = subparsers.add_parser("inductive", help="Repeated game with inductive agents")
-    inductive_parser.add_argument("--mode", choices=["best", "softmax", "recency", "turnover"], required=True)
+    inductive_parser.add_argument("--mode", choices=["best", "softmax", "recency", "virtual_payoff"], required=True)
     inductive_parser.add_argument("--n_players", type=int, default=101)
     inductive_parser.add_argument("--threshold", type=int, default=60)
     inductive_parser.add_argument("--n_rounds", type=int, default=200)
@@ -421,10 +440,8 @@ def build_parser() -> argparse.ArgumentParser:
     inductive_parser.add_argument("--output_dir", type=str, default="outputs/inductive")
     inductive_parser.add_argument("--predictors_per_agent", type=int, default=6)
     inductive_parser.add_argument("--beta", type=float, default=1.0, help="Inverse temperature (softmax/recency)")
-    inductive_parser.add_argument("--lambda_decay", type=float, default=0.95, help="Score decay (recency/turnover)")
+    inductive_parser.add_argument("--lambda_decay", type=float, default=0.95, help="Score decay (recency)")
     inductive_parser.add_argument("--selection", choices=["argmax", "softmax"], default="argmax", help="Selection rule (recency)")
-    inductive_parser.add_argument("--patience", type=int, default=10, help="Failure patience (turnover)")
-    inductive_parser.add_argument("--error_threshold", type=float, default=5.0, help="Error threshold (turnover)")
 
     # === heterogeneous ===
     hetero_parser = subparsers.add_parser("heterogeneous", help="Repeated game with mixed populations")

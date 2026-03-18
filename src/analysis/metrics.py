@@ -21,8 +21,6 @@ from typing import Dict, List, Optional
 
 import numpy as np
 
-from src.game.payoff import is_overcrowded
-
 
 def mean_attendance(attendance_history: List[int]) -> float:
     return float(np.mean(attendance_history))
@@ -45,8 +43,9 @@ def mad_from_threshold(attendance_history: List[int], threshold: int) -> float:
 
 
 def overcrowding_rate(attendance_history: List[int], threshold: int) -> float:
-    """Fraction of rounds with A_t > L under the weak-threshold convention."""
-    return float(np.mean([is_overcrowded(a, threshold) for a in attendance_history]))
+    """Fraction of rounds with A_t > L under the repo's A <= L convention."""
+    arr = np.array(attendance_history, dtype=float)
+    return float(np.mean(arr > threshold))
 
 
 def mean_cumulative_payoff(cumulative_payoffs: List[int]) -> float:

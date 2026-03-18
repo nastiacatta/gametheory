@@ -8,7 +8,7 @@ Agent types:
   - RoutineAgent: Repeats last successful behaviour (habit-forming)
   - TrendAgent: Follows recent attendance trend (bandwagon effect)
   - ContrarianAgent: Uses mirror/contrarian predictor (anti-conformist)
-  - AdaptiveAgent: Uses turnover or recency-weighted predictors (sophisticated)
+  - AdaptiveAgent: Uses recency-weighted predictors (sophisticated)
 
 The case study compares:
   1. Homogeneous populations of each type
@@ -37,7 +37,6 @@ from src.agents.predictors import (
     mirror_threshold,
 )
 from src.agents.recency_weighted_predictor_agent import RecencyWeightedPredictorAgent
-from src.agents.turnover_predictor_agent import TurnoverPredictorAgent
 from src.analysis.metrics import compute_all_metrics
 from src.analysis.plots import (
     plot_attendance_over_time,
@@ -160,7 +159,6 @@ def build_case_study_population(
     p_trend: float,
     p_contrarian: float,
     p_adaptive: float,
-    adaptive_type: str = "recency",
     seed: int = 42,
 ) -> List[BaseAgent]:
     """
@@ -171,8 +169,7 @@ def build_case_study_population(
         p_routine: Fraction of RoutineAgents.
         p_trend: Fraction of TrendAgents.
         p_contrarian: Fraction of ContrarianAgents.
-        p_adaptive: Fraction of AdaptiveAgents (recency or turnover).
-        adaptive_type: "recency" or "turnover" for adaptive agents.
+        p_adaptive: Fraction of AdaptiveAgents (recency-weighted).
         seed: Random seed for reproducibility.
     
     Returns:
@@ -204,23 +201,15 @@ def build_case_study_population(
     for _ in range(n_contrarian):
         agents.append(ContrarianAgent(use_mirror_threshold=rng.random() < 0.5))
     
-    from src.agents.predictors import default_predictor_library, sample_predictor_library
+    from src.agents.predictors import sample_predictor_library
     
     for _ in range(n_adaptive):
         preds = sample_predictor_library(rng, k=6)
-        if adaptive_type == "recency":
-            agents.append(RecencyWeightedPredictorAgent(
-                predictors=preds,
-                lambda_decay=0.95,
-                selection="argmax",
-            ))
-        else:
-            agents.append(TurnoverPredictorAgent(
-                predictors=preds,
-                lambda_decay=0.95,
-                patience=10,
-                master_library=default_predictor_library(),
-            ))
+        agents.append(RecencyWeightedPredictorAgent(
+            predictors=preds,
+            lambda_decay=0.95,
+            selection="argmax",
+        ))
     
     rng.shuffle(agents)
     return agents

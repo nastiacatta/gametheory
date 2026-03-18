@@ -10,7 +10,7 @@ Supports:
 from __future__ import annotations
 
 from math import isclose
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 
@@ -23,7 +23,7 @@ from src.agents.producer_agent import ProducerAgent
 from src.agents.random_agent import RandomAgent
 from src.agents.recency_weighted_predictor_agent import RecencyWeightedPredictorAgent
 from src.agents.softmax_predictor_agent import SoftmaxPredictorAgent
-from src.agents.turnover_predictor_agent import TurnoverPredictorAgent
+from src.agents.virtual_payoff_predictor_agent import VirtualPayoffPredictorAgent
 
 
 def _adaptive_bank(rng: np.random.Generator, predictors_per_agent: int):
@@ -62,6 +62,24 @@ def build_homogeneous_softmax(
         SoftmaxPredictorAgent(
             predictors=_adaptive_bank(rng, predictors_per_agent),
             beta=beta,
+        )
+        for _ in range(n_players)
+    ]
+
+
+def build_homogeneous_virtual_payoff(
+    n_players: int,
+    predictors_per_agent: int = 3,
+    seed: int = 42,
+) -> List[BaseAgent]:
+    """All agents use hard-argmax predictor selection with virtual-payoff scoring."""
+    _max_k = len(default_predictor_library())
+    if not (1 <= predictors_per_agent <= _max_k):
+        raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
+    rng = np.random.default_rng(seed)
+    return [
+        VirtualPayoffPredictorAgent(
+            predictors=_adaptive_bank(rng, predictors_per_agent)
         )
         for _ in range(n_players)
     ]
@@ -160,32 +178,6 @@ def build_homogeneous_recency(
     ]
 
 
-def build_homogeneous_turnover(
-    n_players: int,
-    lambda_decay: float = 0.95,
-    patience: int = 10,
-    error_threshold: float = 5.0,
-    predictors_per_agent: int = 6,
-    seed: int = 42,
-) -> List[BaseAgent]:
-    """All agents use turnover predictor selection with hypothesis replacement."""
-    _max_k = len(default_predictor_library())
-    if not (1 <= predictors_per_agent <= _max_k):
-        raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
-    rng = np.random.default_rng(seed)
-    master_lib = default_predictor_library()
-    return [
-        TurnoverPredictorAgent(
-            predictors=_adaptive_bank(rng, predictors_per_agent),
-            lambda_decay=lambda_decay,
-            patience=patience,
-            error_threshold=error_threshold,
-            master_library=master_lib,
-        )
-        for _ in range(n_players)
-    ]
-
-
 def build_producer_speculator(
     n_players: int,
     n_producers: int,
@@ -274,5 +266,72 @@ def build_fixed_predictor_population(
 
     return [
         FixedPredictorAgent(predictor_name=name, predictor_fn=fn)
+        for name, fn in assignments
+    ]
+
+
+def build_homogeneous_fixed_predictor(
+    n_players: int,
+    *,
+    predictor_name: str = "last_value",
+) -> List[BaseAgent]:
+    """
+    All players get the same fixed predictor and never switch.
+    This is a non-adaptive repeated baseline.
+    """
+    library = dict(default_predictor_library())
+
+    if predictor_name not in library:
+        available = ", ".join(library.keys())
+        raise ValueError(
+            f"Unknown predictor_name={predictor_name!r}. "
+            f"Available predictors: {available}"
+        )
+
+    predictor_fn = library[predictor_name]
+    return [
+        FixedPredictorAgent(
+            predictor_name=predictor_name,
+            predictor_fn=predictor_fn,
+        )
+        for _ in range(n_players)
+    ]
+
+
+def build_heterogeneous_fixed_predictor(
+    n_players: int,
+    *,
+    seed: int = 42,
+    cover_all_predictors: bool = True,
+) -> List[BaseAgent]:
+    """
+    Each player is assigned exactly one predictor at t=0 and never switches.
+    Players are heterogeneous across the population, but each player is non-adaptive.
+    """
+    rng = np.random.default_rng(seed)
+    library = default_predictor_library()
+
+    if not library:
+        raise ValueError("Predictor library is empty.")
+
+    n_pred = len(library)
+    assignments: List[Tuple[str, object]] = []
+
+    if cover_all_predictors and n_players >= n_pred:
+        order = rng.permutation(n_pred)
+        assignments.extend(library[int(i)] for i in order)
+
+        remaining = n_players - n_pred
+        extra_idx = rng.choice(n_pred, size=remaining, replace=True)
+        assignments.extend(library[int(i)] for i in extra_idx)
+    else:
+        idx = rng.choice(n_pred, size=n_players, replace=True)
+        assignments = [library[int(i)] for i in idx]
+
+    return [
+        FixedPredictorAgent(
+            predictor_name=name,
+            predictor_fn=fn,
+        )
         for name, fn in assignments
     ]

@@ -4,7 +4,7 @@ Multi-seed parameter sweep for the El Farol threshold game.
 Runs experiments over:
   - seeds (0..49 by default)
   - n_rounds (200, 1000)
-  - modes: best, softmax (multiple beta), recency, turnover, heterogeneous
+  - modes: best, softmax (multiple beta), recency, heterogeneous
 
 Outputs:
   - sweep_results.csv: one row per run
@@ -35,7 +35,6 @@ from src.experiments.populations import (
     build_homogeneous_best_predictor,
     build_homogeneous_recency,
     build_homogeneous_softmax,
-    build_homogeneous_turnover,
     build_producer_speculator,
 )
 from src.game.repeated_game import RepeatedMinorityGame
@@ -80,15 +79,6 @@ def run_single_experiment(
             lambda_decay=lambda_decay,
             selection=mode_params.get("selection", "argmax"),
             beta=beta,
-            predictors_per_agent=predictors_per_agent,
-            seed=config.seed,
-        )
-    elif mode == "turnover":
-        agents = build_homogeneous_turnover(
-            config.n_players,
-            lambda_decay=lambda_decay,
-            patience=mode_params.get("patience", 10),
-            error_threshold=mode_params.get("error_threshold", 5.0),
             predictors_per_agent=predictors_per_agent,
             seed=config.seed,
         )
@@ -159,8 +149,6 @@ def main() -> None:
         ("softmax", {"beta": 3.0}),
         ("recency", {"lambda_decay": 0.9}),
         ("recency", {"lambda_decay": 0.95}),
-        ("turnover", {"patience": 10, "lambda_decay": 0.95}),
-        ("turnover", {"patience": 15, "lambda_decay": 0.95}),
         ("heterogeneous_mix", {"p_best": 0.4, "p_softmax": 0.4, "p_random": 0.2}),
         ("producer_speculator", {"n_producers": 50}),
     ]
@@ -199,8 +187,6 @@ def main() -> None:
                 mode_label = f"softmax_beta{params.get('beta', 1.0)}"
             elif mode == "recency":
                 mode_label = f"recency_lambda{params.get('lambda_decay', 0.95)}"
-            elif mode == "turnover":
-                mode_label = f"turnover_p{params.get('patience', 10)}"
 
             row = {
                 "seed": seed,

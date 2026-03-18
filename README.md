@@ -76,9 +76,6 @@ python -m src.main inductive --mode softmax --beta 1.0 --n_rounds 200
 
 # Recency-weighted with exponential forgetting
 python -m src.main inductive --mode recency --lambda_decay 0.95 --n_rounds 200
-
-# Turnover agent with predictor replacement
-python -m src.main inductive --mode turnover --patience 15 --n_rounds 200
 ```
 
 **Heterogeneous populations:**
@@ -144,7 +141,6 @@ See `docs/game_definition.md` for full definitions, proofs, and theoretical anal
 - `BestPredictorAgent`: Hard argmax over predictor scores (Arthur-inspired)
 - `SoftmaxPredictorAgent`: Boltzmann selection with temperature parameter β
 - `RecencyWeightedPredictorAgent`: Exponential score decay for faster adaptation to regime changes
-- `TurnoverPredictorAgent`: Arthur-style hypothesis replacement when active predictor underperforms
 
 ### Predictor Library
 
@@ -163,7 +159,7 @@ These are **Arthur-inspired inductive heuristics**, not a reconstruction of any 
 
 $$s_{ij}(t+1) = s_{ij}(t) - |\hat{A}_{ij}(t) - A_t|$$
 
-**Recency-weighted scoring (Recency, Turnover):**
+**Recency-weighted scoring (Recency):**
 
 $$s_{ij}(t+1) = \lambda \cdot s_{ij}(t) - |\hat{A}_{ij}(t) - A_t|, \quad \lambda \in (0,1]$$
 

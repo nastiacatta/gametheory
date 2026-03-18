@@ -104,9 +104,10 @@ def main() -> None:
     out = Path(args.output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
-    result.rounds_dataframe().to_csv(out / "rounds.csv", index=False)
+    player_df = result.players_dataframe().copy()
+    player_df["agent_type"] = [agent.name() for agent in agents]
 
-    player_df = result.players_dataframe()
+    result.rounds_dataframe().to_csv(out / "rounds.csv", index=False)
     player_df.to_csv(out / "players.csv", index=False)
 
     pd.DataFrame([metrics]).to_csv(out / "summary.csv", index=False)
@@ -132,7 +133,7 @@ def main() -> None:
     plot_rolling_variance_from_threshold(
         result.attendance_history,
         config.threshold,
-        window=max(10, config.n_rounds // 10),
+        window=max(20, config.n_rounds // 10),
         output_path=out / "rolling_variance.png",
     )
 

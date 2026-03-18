@@ -1,5 +1,5 @@
 """
-Run repeated-game experiments with inductive strategies (best-predictor, softmax).
+Run repeated-game experiments with inductive strategies (best-predictor, softmax, virtual-payoff).
 """
 
 from __future__ import annotations
@@ -23,13 +23,14 @@ from src.config import RepeatedGameConfig
 from src.experiments.populations import (
     build_homogeneous_best_predictor,
     build_homogeneous_softmax,
+    build_homogeneous_virtual_payoff,
 )
 from src.game.repeated_game import RepeatedMinorityGame
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["best", "softmax"], required=True)
+    parser.add_argument("--mode", choices=["best", "softmax", "virtual_payoff"], required=True)
     parser.add_argument("--n_players", type=int, default=101)
     parser.add_argument("--threshold", type=int, default=60)
     parser.add_argument("--n_rounds", type=int, default=200)
@@ -50,9 +51,13 @@ def main() -> None:
         agents = build_homogeneous_best_predictor(
             config.n_players, predictors_per_agent=args.predictors_per_agent, seed=config.seed
         )
-    else:
+    elif args.mode == "softmax":
         agents = build_homogeneous_softmax(
             config.n_players, beta=args.beta, predictors_per_agent=args.predictors_per_agent, seed=config.seed
+        )
+    else:
+        agents = build_homogeneous_virtual_payoff(
+            config.n_players, predictors_per_agent=args.predictors_per_agent, seed=config.seed
         )
 
     game = RepeatedMinorityGame(
@@ -109,7 +114,7 @@ def main() -> None:
     plot_rolling_variance_from_threshold(
         result.attendance_history,
         config.threshold,
-        window=max(10, config.n_rounds // 10),
+        window=max(20, config.n_rounds // 10),
         output_path=out / "rolling_variance.png",
     )
 

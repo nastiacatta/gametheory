@@ -1,11 +1,10 @@
 """
 Run repeated-game baselines (non-adaptive agents, no inductive strategies).
 
-Supports three baseline types:
-  - fixed_predictor: Repeated Fixed Strategy — each agent gets one predictor
-    at t=0 and uses it forever. Game seeded with bootstrap history. (DEFAULT)
-  - all_random: i.i.d. random agents with fixed p_attend.
-  - mixed: half random agents, half fixed-attendance agents.
+Supports three baseline types via --mode:
+  - fixed_random: half random agents, half fixed-attendance agents (original baseline)
+  - fixed_predictor: homogeneous fixed predictor, same predictor for all players
+  - heterogeneous_fixed_predictor: each player gets one predictor at t=0, never switches
 
 These provide fair comparators for learned inductive strategies.
 """
@@ -17,71 +16,64 @@ from pathlib import Path
 
 from src.agents.fixed_attendance_agent import FixedAttendanceAgent
 from src.agents.random_agent import RandomAgent
+from src.analysis.metrics import compute_all_metrics
+from src.analysis.plots import (
+    plot_attendance_over_time,
+    plot_cumulative_average_attendance,
+    plot_payoff_histogram,
+)
 from src.config import RepeatedGameConfig
-from src.experiments.populations import build_fixed_predictor_population
-from src.experiments.run_repeated_fixed_strategy import bootstrap_history
+from src.experiments.populations import (
+    build_homogeneous_fixed_predictor,
+    build_heterogeneous_fixed_predictor,
+)
 from src.game.repeated_game import RepeatedMinorityGame
 
 
-def _build_baseline_agents(
-    n_players: int,
-    baseline_type: str = "fixed_predictor",
-    p_attend: float = 0.55,
-    predicted_attendance: int = 58,
-    seed: int = 42,
-) -> list:
-    """
-    Build baseline agents for comparison experiments.
+def _build_fixed_random_agents(n_players: int) -> list:
+    """Baseline: half random, half fixed-attendance."""
+    agents = []
+    split = n_players // 2
 
-    Args:
-        n_players: Number of agents.
-        baseline_type: "fixed_predictor" (default) for Repeated Fixed Strategy,
-            "all_random" for pure i.i.d. agents, "mixed" for half random /
-            half fixed-attendance.
-        p_attend: Attendance probability for random agents.
-        predicted_attendance: Fixed attendance prediction for FixedAttendanceAgent.
-        seed: Random seed for fixed_predictor assignment.
+    for _ in range(split):
+        agents.append(RandomAgent(p_attend=0.55))
 
-    Returns:
-        List of baseline agents.
-    """
-    if baseline_type == "fixed_predictor":
-        return build_fixed_predictor_population(
-            n_players=n_players,
-            seed=seed,
-            cover_all_predictors=True,
-        )
+    for _ in range(n_players - split):
+        agents.append(FixedAttendanceAgent(predicted_attendance=58))
 
-    if baseline_type == "all_random":
-        return [RandomAgent(p_attend=p_attend) for _ in range(n_players)]
-
-    if baseline_type == "mixed":
-        agents = []
-        split = n_players // 2
-        for _ in range(split):
-            agents.append(RandomAgent(p_attend=p_attend))
-        for _ in range(n_players - split):
-            agents.append(FixedAttendanceAgent(predicted_attendance=predicted_attendance))
-        return agents
-
-    raise ValueError(f"Unknown baseline_type: {baseline_type}")
+    return agents
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--mode",
+        choices=[
+            "fixed_random",
+            "fixed_predictor",
+            "heterogeneous_fixed_predictor",
+        ],
+        default="fixed_random",
+    )
     parser.add_argument("--n_players", type=int, default=101)
     parser.add_argument("--threshold", type=int, default=60)
     parser.add_argument("--n_rounds", type=int, default=200)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--output_dir", type=str, default="outputs/baselines")
+    parser.add_argument("--output_dir", type=str, default="outputs/repeated_baselines")
+
     parser.add_argument(
-        "--baseline_type",
-        choices=["fixed_predictor", "all_random", "mixed"],
-        default="fixed_predictor",
-        help="Baseline type (default: fixed_predictor = Repeated Fixed Strategy)"
+        "--predictor_name",
+        type=str,
+        default="last_value",
+        help="Predictor for homogeneous fixed-predictor mode",
     )
-    parser.add_argument("--p_attend", type=float, default=0.55)
-    parser.add_argument("--predicted_attendance", type=int, default=58)
+
+    parser.add_argument(
+        "--cover_all_predictors",
+        action="store_true",
+        help="Ensure every predictor appears at least once when possible",
+    )
+
     args = parser.parse_args()
 
     config = RepeatedGameConfig(
@@ -90,22 +82,19 @@ def main() -> None:
         n_rounds=args.n_rounds,
         seed=args.seed,
     )
-    agents = _build_baseline_agents(
-        config.n_players,
-        baseline_type=args.baseline_type,
-        p_attend=args.p_attend,
-        predicted_attendance=args.predicted_attendance,
-        seed=config.seed,
-    )
 
-    # Use bootstrap history for fixed_predictor baseline
-    init_history = None
-    if args.baseline_type == "fixed_predictor":
-        init_history = bootstrap_history(
-            n_players=config.n_players,
-            threshold=config.threshold,
-            length=8,
+    if args.mode == "fixed_random":
+        agents = _build_fixed_random_agents(config.n_players)
+    elif args.mode == "fixed_predictor":
+        agents = build_homogeneous_fixed_predictor(
+            config.n_players,
+            predictor_name=args.predictor_name,
+        )
+    else:
+        agents = build_heterogeneous_fixed_predictor(
+            config.n_players,
             seed=config.seed,
+            cover_all_predictors=args.cover_all_predictors,
         )
 
     game = RepeatedMinorityGame(
@@ -114,17 +103,43 @@ def main() -> None:
         n_rounds=config.n_rounds,
         agents=agents,
         seed=config.seed,
-        initial_attendance_history=init_history,
     )
+
     result = game.play()
 
-    out = Path(args.output_dir)
-    result.save_outputs(out)
-    print(f"Baseline repeated game ({args.baseline_type}): {out.resolve()}")
-    if args.baseline_type == "fixed_predictor":
-        print(f"  Bootstrap history: {init_history}")
-    for k, v in result.summary().items():
-        print(f"  {k}={v}")
+    metrics = compute_all_metrics(
+        result.attendance_history,
+        result.cumulative_payoffs,
+        config.threshold,
+    )
+
+    out = Path(args.output_dir) / args.mode
+    out.mkdir(parents=True, exist_ok=True)
+
+    result.rounds_dataframe().to_csv(out / "rounds.csv", index=False)
+    result.players_dataframe().to_csv(out / "players.csv", index=False)
+
+    import pandas as pd
+    pd.DataFrame([metrics]).to_csv(out / "summary.csv", index=False)
+
+    plot_attendance_over_time(
+        result.attendance_history,
+        config.threshold,
+        out / "attendance.png",
+    )
+    plot_cumulative_average_attendance(
+        result.attendance_history,
+        config.threshold,
+        out / "cum_avg_attendance.png",
+    )
+    plot_payoff_histogram(
+        result.cumulative_payoffs,
+        out / "payoff_hist.png",
+    )
+
+    print(f"Repeated baseline ({args.mode}): {out.resolve()}")
+    for k, v in metrics.items():
+        print(f"{k}={v}")
 
 
 if __name__ == "__main__":
