@@ -30,6 +30,5 @@ class ProducerAgent(BaseAgent):
         self.noise_std = noise_std
 
     def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
-        _ = context
         prediction = self.base_prediction + rng.normal(0.0, self.noise_std)
-        return int(prediction < context.threshold)
+        return int(prediction <= context.threshold)
