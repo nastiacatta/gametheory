@@ -17,6 +17,7 @@ import numpy as np
 from src.agents.base import BaseAgent
 from src.agents.best_predictor_agent import BestPredictorAgent
 from src.agents.fixed_attendance_agent import FixedAttendanceAgent
+from src.agents.fixed_predictor_agent import FixedPredictorAgent
 from src.agents.predictors import default_predictor_library, sample_predictor_library
 from src.agents.producer_agent import ProducerAgent
 from src.agents.random_agent import RandomAgent
@@ -243,3 +244,35 @@ def build_producer_speculator(
         raise ValueError("speculator_type must be 'best' or 'softmax'.")
 
     return agents
+
+
+def build_fixed_predictor_population(
+    n_players: int,
+    seed: int = 42,
+    cover_all_predictors: bool = True,
+) -> List[BaseAgent]:
+    """
+    Assign exactly one predictor to each player and keep it fixed for all rounds.
+
+    If cover_all_predictors=True and n_players >= len(library), every predictor
+    appears at least once in the population before the remaining slots are
+    filled by uniform random draws.
+    """
+    rng = np.random.default_rng(seed)
+    library = default_predictor_library()
+    n_pred = len(library)
+
+    if cover_all_predictors and n_players >= n_pred:
+        first_pass = rng.permutation(n_pred)
+        assignments = [library[int(i)] for i in first_pass]
+
+        extra_idx = rng.choice(n_pred, size=n_players - n_pred, replace=True)
+        assignments.extend(library[int(i)] for i in extra_idx)
+    else:
+        idx = rng.choice(n_pred, size=n_players, replace=True)
+        assignments = [library[int(i)] for i in idx]
+
+    return [
+        FixedPredictorAgent(predictor_name=name, predictor_fn=fn)
+        for name, fn in assignments
+    ]

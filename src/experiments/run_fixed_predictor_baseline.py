@@ -1,13 +1,20 @@
 """
-Fixed-predictor baseline experiment for the repeated El Farol game.
+Repeated Fixed Strategy baseline for the El Farol game.
 
-Each player is randomly assigned one predictor from the library at the start
-and uses that same predictor throughout all rounds. This serves as a non-adaptive
-baseline for comparison with inductive agents that switch predictors.
+Definition (following Arthur's predictor framework):
+    Each player is assigned one predictor at t=0 and applies that same
+    predictor to the evolving public attendance history in every round.
+    No switching, no score updates, no learning.
 
-Key distinction from inductive strategies:
-- Fixed: one predictor per agent, no scoring, no switching
-- Inductive: bank of predictors, track accuracy scores, switch to best
+    a_i(t) = 1[f_i(H_t) <= L]
+
+    where f_i is assigned once at initialisation and H_t is the attendance
+    history before round t.
+
+The game is seeded with a bootstrap attendance history of length 8 so that
+every predictor has data from round 1.  This avoids the all-attend artefact
+when predictors fall back to the threshold on empty history.  The bootstrap
+is part of the baseline definition, not an optional feature.
 
 Outputs:
 - Standard repeated-game outputs via RepeatedGameResult.save_outputs()
@@ -28,37 +35,26 @@ import pandas as pd
 from src.agents.base import BaseAgent
 from src.agents.fixed_predictor_agent import FixedPredictorAgent
 from src.agents.predictors import Predictor, default_predictor_library
+from src.experiments.populations import build_fixed_predictor_population
 from src.game.repeated_game import RepeatedMinorityGame, RepeatedGameResult
 
 
-def assign_fixed_predictors(
+def bootstrap_history(
     n_players: int,
-    predictor_library: List[Tuple[str, Predictor]],
-    rng: np.random.Generator,
-) -> List[FixedPredictorAgent]:
+    threshold: int,
+    length: int,
+    seed: int,
+) -> list[int]:
     """
-    Randomly assign one predictor to each player (with replacement).
+    Generate a synthetic initial attendance history by drawing each value
+    from Binomial(n_players, threshold/n_players).
 
-    Parameters
-    ----------
-    n_players : int
-        Number of agents to create.
-    predictor_library : list of (name, predictor_fn)
-        Available predictors to choose from.
-    rng : np.random.Generator
-        Random generator for reproducible assignment.
-
-    Returns
-    -------
-    list of FixedPredictorAgent
-        Population of agents, each with one assigned predictor.
+    Length 8 covers the longest lookback window in the default predictor
+    library (rolling_mean_8, linear_trend_8).
     """
-    indices = rng.integers(0, len(predictor_library), size=n_players)
-    agents = []
-    for idx in indices:
-        name, fn = predictor_library[idx]
-        agents.append(FixedPredictorAgent(predictor_name=name, predictor_fn=fn))
-    return agents
+    rng = np.random.default_rng(seed)
+    p = threshold / n_players
+    return [int(rng.binomial(n_players, p)) for _ in range(length)]
 
 
 def count_predictor_assignments(agents: List[FixedPredictorAgent]) -> dict[str, int]:
@@ -147,15 +143,23 @@ def plot_predictor_summary(
         plt.show()
 
 
+_BOOTSTRAP_HISTORY_LEN = 8
+
+
 def run_fixed_predictor_baseline(
     n_players: int = 101,
     threshold: int = 60,
     n_rounds: int = 200,
     seed: int = 42,
     output_dir: Path | str = "outputs/fixed_predictor_baseline",
+    cover_all_predictors: bool = True,
 ) -> Tuple[RepeatedGameResult, pd.DataFrame]:
     """
     Run the fixed-predictor baseline experiment.
+
+    The game is seeded with a bootstrap attendance history of length 8 so
+    that every predictor has data from round 1.  This is part of the
+    baseline definition, not an optional feature.
 
     Parameters
     ----------
@@ -169,6 +173,9 @@ def run_fixed_predictor_baseline(
         Random seed for reproducibility.
     output_dir : Path or str
         Directory for outputs.
+    cover_all_predictors : bool
+        If True and n_players >= library size, every predictor appears at
+        least once in the population.
 
     Returns
     -------
@@ -178,19 +185,31 @@ def run_fixed_predictor_baseline(
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    rng = np.random.default_rng(seed)
     predictor_library = default_predictor_library()
 
     print(f"Running fixed-predictor baseline: n={n_players}, L={threshold}, "
           f"rounds={n_rounds}, seed={seed}")
     print(f"Predictor library size: {len(predictor_library)}")
+    print(f"Cover all predictors: {cover_all_predictors}")
 
-    agents = assign_fixed_predictors(n_players, predictor_library, rng)
+    agents = build_fixed_predictor_population(
+        n_players=n_players,
+        seed=seed,
+        cover_all_predictors=cover_all_predictors,
+    )
 
     assignment_counts = count_predictor_assignments(agents)
     print("\nPredictor assignment counts:")
     for name, count in sorted(assignment_counts.items()):
         print(f"  {name}: {count}")
+
+    init_history = bootstrap_history(
+        n_players=n_players,
+        threshold=threshold,
+        length=_BOOTSTRAP_HISTORY_LEN,
+        seed=seed,
+    )
+    print(f"\nBootstrap history (len={_BOOTSTRAP_HISTORY_LEN}): {init_history}")
 
     game = RepeatedMinorityGame(
         n_players=n_players,
@@ -198,8 +217,10 @@ def run_fixed_predictor_baseline(
         n_rounds=n_rounds,
         agents=agents,
         seed=seed,
+        initial_attendance_history=init_history,
     )
     result = game.play()
+    print(f"Round 1 attendance: {result.attendance_history[0]}")
 
     result.save_outputs(output_path)
     print(f"\nSaved standard repeated-game outputs to: {output_path}")

@@ -184,6 +184,7 @@ class RepeatedMinorityGame:
         n_rounds: int,
         agents: List[BaseAgent],
         seed: int = 42,
+        initial_attendance_history: list[int] | None = None,
     ) -> None:
         if n_players <= 0:
             raise ValueError("n_players must be positive.")
@@ -200,10 +201,19 @@ class RepeatedMinorityGame:
         self.agents = agents
         self.rng = np.random.default_rng(seed)
 
+        self.initial_attendance_history: list[int] = list(
+            initial_attendance_history or []
+        )
+        for a in self.initial_attendance_history:
+            if not (0 <= a <= n_players):
+                raise ValueError(
+                    f"Initial history value {a} outside [0, {n_players}]."
+                )
+
     def play(self) -> RepeatedGameResult:
         rounds: List[RoundResult] = []
         cumulative_payoffs = [0 for _ in range(self.n_players)]
-        attendance_history: List[int] = []
+        attendance_history: List[int] = list(self.initial_attendance_history)
 
         for agent in self.agents:
             agent.reset()
