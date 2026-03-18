@@ -16,6 +16,10 @@ def mean_attendance(attendance_history: List[int]) -> float:
     return float(np.mean(attendance_history))
 
 
+def std_attendance(attendance_history: List[int]) -> float:
+    return float(np.std(attendance_history))
+
+
 def variance_from_threshold(attendance_history: List[int], threshold: int) -> float:
     """σ²_L = mean of (A_t - L)²."""
     arr = np.array(attendance_history, dtype=float)
@@ -29,9 +33,9 @@ def mad_from_threshold(attendance_history: List[int], threshold: int) -> float:
 
 
 def overcrowding_rate(attendance_history: List[int], threshold: int) -> float:
-    """Fraction of rounds with A_t > L."""
+    """Fraction of rounds with A_t >= L (Arthur-style strict threshold)."""
     arr = np.array(attendance_history, dtype=float)
-    return float(np.mean(arr > threshold))
+    return float(np.mean(arr >= threshold))
 
 
 def mean_cumulative_payoff(cumulative_payoffs: List[int]) -> float:
@@ -71,6 +75,7 @@ def compute_all_metrics(
     out: Dict[str, float] = {
         "n_rounds": float(len(attendance_history)),
         "mean_attendance": mean_attendance(attendance_history),
+        "std_attendance": std_attendance(attendance_history),
         "variance_from_threshold": variance_from_threshold(attendance_history, threshold),
         "mad_from_threshold": mad_from_threshold(attendance_history, threshold),
         "overcrowding_rate": overcrowding_rate(attendance_history, threshold),

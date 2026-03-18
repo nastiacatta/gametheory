@@ -1,5 +1,5 @@
 """
-Temperature-based (softmax) predictor-selection agent.
+Temperature-based predictor-selection agent (Arthur-inspired stochastic selection).
 
 Same predictor bank and scoring as BestPredictorAgent, but the active
 predictor is chosen stochastically via a Boltzmann / softmax distribution:
@@ -8,6 +8,8 @@ predictor is chosen stochastically via a Boltzmann / softmax distribution:
 
 beta = 0  =>  uniform random choice  (pure exploration)
 beta -> inf  =>  hard argmax         (pure exploitation)
+
+Inspired by predictor-based inductive strategies; not an exact replication.
 """
 
 from __future__ import annotations
@@ -57,7 +59,7 @@ class SoftmaxPredictorAgent(BaseAgent):
         self._active_idx = chosen_idx
         self.predictor_history.append(chosen_idx)
 
-        return int(predictions[chosen_idx] <= context.threshold)
+        return int(predictions[chosen_idx] < context.threshold)
 
     def update(
         self,

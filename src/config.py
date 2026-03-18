@@ -17,8 +17,6 @@ class StaticGameConfig:
     def __post_init__(self) -> None:
         if self.n_players <= 0:
             raise ValueError("n_players must be positive.")
-        if self.n_players % 2 == 0:
-            raise ValueError("n_players must be odd.")
         if not (0 <= self.threshold <= self.n_players):
             raise ValueError("threshold must be between 0 and n_players (inclusive).")
 
@@ -33,8 +31,6 @@ class RepeatedGameConfig:
     def __post_init__(self) -> None:
         if self.n_players <= 0:
             raise ValueError("n_players must be positive.")
-        if self.n_players % 2 == 0:
-            raise ValueError("n_players must be odd.")
         if not (0 <= self.threshold <= self.n_players):
             raise ValueError("threshold must be between 0 and n_players (inclusive).")
         if self.n_rounds <= 0:

@@ -43,8 +43,6 @@ class StaticMinorityGame:
     ) -> None:
         if n_players <= 0:
             raise ValueError("n_players must be positive.")
-        if n_players % 2 == 0:
-            raise ValueError("n_players should be odd for this coursework setup.")
         if len(agents) != n_players:
             raise ValueError("Number of agents must equal n_players.")
         if not (0 <= threshold <= n_players):

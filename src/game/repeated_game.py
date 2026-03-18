@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 from src.agents.base import BaseAgent, RoundContext
+from src.analysis.metrics import compute_all_metrics
 from src.game.payoff import build_stage_outcome
 
 
@@ -43,37 +44,16 @@ class RepeatedGameResult:
     def overcrowded_rounds(self) -> List[bool]:
         return [round_result.overcrowded for round_result in self.rounds]
 
-    def summary(self) -> Dict[str, float]:
-        """Summary keys aligned with analysis.metrics.compute_all_metrics."""
-        if not self.rounds:
-            return {
-                "n_rounds": 0.0,
-                "mean_attendance": float("nan"),
-                "std_attendance": float("nan"),
-                "variance_from_threshold": float("nan"),
-                "mad_from_threshold": float("nan"),
-                "overcrowding_rate": float("nan"),
-                "mean_cumulative_payoff": float("nan"),
-                "std_cumulative_payoff": float("nan"),
-                "min_cumulative_payoff": float("nan"),
-                "max_cumulative_payoff": float("nan"),
-            }
-
-        attendance = np.array(self.attendance_history, dtype=float)
-        cumulative = np.array(self.cumulative_payoffs, dtype=float)
-
-        return {
-            "n_rounds": float(len(self.rounds)),
-            "mean_attendance": float(attendance.mean()),
-            "std_attendance": float(attendance.std()),
-            "variance_from_threshold": float(np.mean((attendance - self.threshold) ** 2)),
-            "mad_from_threshold": float(np.mean(np.abs(attendance - self.threshold))),
-            "overcrowding_rate": float(np.mean(self.overcrowded_rounds)),
-            "mean_cumulative_payoff": float(cumulative.mean()),
-            "std_cumulative_payoff": float(cumulative.std()),
-            "min_cumulative_payoff": float(cumulative.min()),
-            "max_cumulative_payoff": float(cumulative.max()),
-        }
+    def summary(
+        self, predictor_histories: List[List[int]] | None = None
+    ) -> Dict[str, float]:
+        """Delegate to analysis.metrics.compute_all_metrics for consistency."""
+        return compute_all_metrics(
+            self.attendance_history,
+            self.cumulative_payoffs,
+            self.threshold,
+            predictor_histories=predictor_histories,
+        )
 
     def rounds_dataframe(self) -> pd.DataFrame:
         records = []
@@ -143,8 +123,6 @@ class RepeatedMinorityGame:
     ) -> None:
         if n_players <= 0:
             raise ValueError("n_players must be positive.")
-        if n_players % 2 == 0:
-            raise ValueError("n_players should be odd for this coursework setup.")
         if n_rounds <= 0:
             raise ValueError("n_rounds must be positive.")
         if len(agents) != n_players:

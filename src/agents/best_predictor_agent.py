@@ -1,12 +1,14 @@
 """
-Arthur-style best-predictor agent (hard argmax).
+Predictor-score best-predictor agent (hard argmax).
 
 Each agent holds a bank of attendance predictors and a cumulative accuracy
 score for each.  Every round it uses the predictor with the highest score
-to forecast attendance, then attends iff the forecast <= threshold.
+to forecast attendance, then attends iff the forecast < threshold.
 
 After the realised attendance is observed, all predictor scores are updated:
     score_j  <-  score_j  -  |forecast_j - A_t|
+
+Inspired by Arthur's predictor-based adaptation; not an exact replication.
 """
 
 from __future__ import annotations
@@ -21,7 +23,7 @@ from src.agents.predictors import Predictor, default_predictor_library
 
 class BestPredictorAgent(BaseAgent):
     """
-    Inductive agent: hard-argmax over predictor scores (Arthur 1994).
+    Arthur-inspired predictor-selection agent: hard-argmax over predictor scores.
     Ties are broken in favour of the lowest-index predictor.
     """
 
@@ -50,7 +52,7 @@ class BestPredictorAgent(BaseAgent):
         self._active_idx = best_idx
         self.predictor_history.append(best_idx)
 
-        return int(predictions[best_idx] <= context.threshold)
+        return int(predictions[best_idx] < context.threshold)
 
     def update(
         self,

@@ -30,8 +30,8 @@ python -m pytest
 The default coursework-style parameters are **n=101**, **L=60**, **m=200**.
 
 Notes:
-- **Odd n**: the game engines enforce odd `--n_players` (typical in minority-game setups).
-- **A = L convention**: attendees are treated as “not overcrowded” when \(A \le L\).
+- **Threshold convention**: attendees are treated as having a good outcome only when \(A \le L\).
+- **Adaptive experiments**: use a shared master predictor library, but each adaptive agent is assigned its own sampled predictor bank for heterogeneity.
 
 **Static (single-shot) game:**
 
@@ -80,7 +80,7 @@ Tests cover payoff logic, configs, population builders, experiment runners, the 
 │   │   ├── base.py
 │   │   ├── random_agent.py
 │   │   ├── fixed_attendance_agent.py
-│   │   ├── predictors.py       # Arthur predictor library
+│   │   ├── predictors.py       # Arthur-inspired fixed predictor master library
 │   │   ├── best_predictor_agent.py
 │   │   ├── softmax_predictor_agent.py
 │   │   └── producer_agent.py
@@ -111,12 +111,12 @@ Tests cover payoff logic, configs, population builders, experiment runners, the 
 └── outputs/               # Generated CSVs and figures (git-ignored)
 ```
 
-## Game definition (lecture-consistent)
+## Game definition (Arthur-style strict threshold)
 
 - Each player chooses **attend** (1) or **stay home** (0).
 - *A* = total attendance. *L* = capacity threshold.
-- If *A* ≤ *L*: attendees receive payoff +1.
-- If *A* > *L*: attendees receive payoff −1.
+- If *A* < *L*: attendees receive payoff +1.
+- If *A* ≥ *L*: attendees receive payoff -1.
 - Stay home: payoff 0 (neutral).
 
 **Report requirement:** The brief allows consistent definitions but does not force a unique stay-home utility. You must state explicitly in the report that stay-home payoff is 0 (neutral); otherwise the marker may assume a different formulation.
@@ -125,7 +125,7 @@ See `docs/game_definition.md` for the full normal-form definition, Nash equilibr
 
 ## Inductive strategies and experiments
 
-**Agents:** `RandomAgent`, `FixedAttendanceAgent`, `BestPredictorAgent` (Arthur-style), `SoftmaxPredictorAgent` (temperature-based), `ProducerAgent` (non-adaptive noisy threshold).
+**Agents:** `RandomAgent`, `FixedAttendanceAgent`, `BestPredictorAgent` (Arthur-inspired), `SoftmaxPredictorAgent` (temperature-based), `ProducerAgent` (non-adaptive noisy threshold).
 
 **Experiment runners:**
 
@@ -133,9 +133,11 @@ See `docs/game_definition.md` for the full normal-form definition, Nash equilibr
 python -m src.experiments.run_repeated_baselines --n_rounds 200 --output_dir outputs/baselines
 python -m src.experiments.run_inductive --mode best --n_rounds 200 --output_dir outputs/inductive
 python -m src.experiments.run_inductive --mode softmax --beta 1.0 --n_rounds 200
-python -m src.experiments.run_heterogeneous --mode mix --p_best 0.5 --p_softmax 0.5 --n_rounds 200
+python -m src.experiments.run_heterogeneous --mode mix --p_best 0.4 --p_softmax 0.4 --p_random 0.2 --n_rounds 200
 python -m src.experiments.run_heterogeneous --mode producer_speculator --n_producers 50 --n_rounds 200
 ```
+
+Note: For `--mode mix`, shares `--p_best`, `--p_softmax`, `--p_random` must sum to 1.0. For `--mode producer_speculator`, producer base prediction defaults to `--threshold` unless `--producer_base_prediction` is specified.
 
 Each experiment runner writes `rounds.csv`, `players.csv`, `summary.csv` plus figures into its `--output_dir`.
 
