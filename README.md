@@ -62,7 +62,7 @@ pytest
 pytest -v
 ```
 
-Tests cover payoff logic, configs, predictors, inductive agents, metrics, the static game, and the repeated game.
+Tests cover payoff logic, configs, population builders, experiment runners, the static game, and the repeated game.
 
 ## Project layout
 
@@ -99,12 +99,11 @@ Tests cover payoff logic, configs, predictors, inductive agents, metrics, the st
 │       └── repeated_game.py
 ├── tests/
 │   ├── conftest.py
+│   ├── test_config.py
 │   ├── test_payoff.py
 │   ├── test_static_game.py
 │   ├── test_repeated_game.py
-│   ├── test_predictors.py
-│   ├── test_inductive_agents.py
-│   └── test_metrics.py
+│   └── test_populations.py
 ├── docs/
 │   ├── game_definition.md
 │   ├── report_outline.md
