@@ -82,3 +82,35 @@ def test_softmax_predictor_agent_with_multiple_predictors() -> None:
 
     actions = [agent.choose_action(ctx, rng) for _ in range(100)]
     assert 0 in actions and 1 in actions
+
+
+def test_best_predictor_reset_clears_state() -> None:
+    """reset() should clear all mutable state for reuse across runs."""
+    agent = BestPredictorAgent()
+    agent.scores[0] = -3.0
+    agent._last_predictions[0] = 55.0
+    agent._active_idx = 2
+    agent.predictor_history = [0, 2, 1]
+
+    agent.reset()
+
+    assert all(x == 0.0 for x in agent.scores)
+    assert all(x == 0.0 for x in agent._last_predictions)
+    assert agent._active_idx == 0
+    assert agent.predictor_history == []
+
+
+def test_softmax_predictor_reset_clears_state() -> None:
+    """reset() should clear all mutable state for reuse across runs."""
+    agent = SoftmaxPredictorAgent(beta=1.0)
+    agent.scores[0] = -5.0
+    agent._last_predictions[0] = 70.0
+    agent._active_idx = 3
+    agent.predictor_history = [1, 3, 2]
+
+    agent.reset()
+
+    assert all(x == 0.0 for x in agent.scores)
+    assert all(x == 0.0 for x in agent._last_predictions)
+    assert agent._active_idx == 0
+    assert agent.predictor_history == []

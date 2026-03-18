@@ -172,15 +172,16 @@ def plot_attendance_over_time(
 
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(rounds, attendance_history, linewidth=1.2)
-    ax.axhline(threshold, linestyle="--", color="gray", label=f"L = {threshold}")
+    ax.axhline(threshold, linestyle="--", color="gray", label=rf"$L={threshold}$")
     ax.set_xlabel("Round")
     ax.set_ylabel("Attendance")
     ax.set_title("Attendance over time")
+    ax.set_xlim(1, len(rounds))
     ax.legend()
     fig.tight_layout()
 
     if output_path:
-        fig.savefig(output_path, dpi=250)
+        fig.savefig(output_path, dpi=200)
         plt.close(fig)
     else:
         plt.show()
@@ -194,18 +195,23 @@ def plot_cumulative_average_attendance(
     """Cumulative average attendance over time."""
     if not attendance_history:
         return
-    cum_avg = np.cumsum(attendance_history) / np.arange(1, len(attendance_history) + 1)
-    plt.figure(figsize=(10, 5))
-    plt.plot(cum_avg)
-    plt.axhline(threshold, linestyle="--", color="gray", label=f"L={threshold}")
-    plt.xlabel("Round")
-    plt.ylabel("Cumulative average attendance")
-    plt.title("Cumulative average attendance")
-    plt.legend()
-    plt.tight_layout()
+
+    rounds = np.arange(1, len(attendance_history) + 1)
+    cum_avg = np.cumsum(attendance_history) / rounds
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(rounds, cum_avg, linewidth=1.4)
+    ax.axhline(threshold, linestyle="--", color="gray", label=rf"$L={threshold}$")
+    ax.set_xlabel("Round")
+    ax.set_ylabel("Cumulative average attendance")
+    ax.set_title("Cumulative average attendance")
+    ax.set_xlim(1, len(rounds))
+    ax.legend()
+    fig.tight_layout()
+
     if output_path:
-        plt.savefig(output_path, dpi=200)
-        plt.close()
+        fig.savefig(output_path, dpi=200)
+        plt.close(fig)
     else:
         plt.show()
 
@@ -214,16 +220,23 @@ def plot_payoff_histogram(
     cumulative_payoffs: List[int],
     output_path: Optional[Path] = None,
 ) -> None:
-    """Histogram of final cumulative payoffs."""
-    plt.figure(figsize=(8, 5))
-    plt.hist(cumulative_payoffs, bins=min(30, max(1, len(set(cumulative_payoffs)))), edgecolor="black", alpha=0.7)
-    plt.xlabel("Cumulative payoff")
-    plt.ylabel("Count")
-    plt.title("Distribution of cumulative payoffs")
-    plt.tight_layout()
+    """Histogram of final cumulative payoffs with integer-centred bins."""
+    if not cumulative_payoffs:
+        return
+
+    values = np.asarray(cumulative_payoffs, dtype=int)
+    bins = np.arange(values.min(), values.max() + 2) - 0.5
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.hist(values, bins=bins, edgecolor="black", alpha=0.75)
+    ax.set_xlabel("Cumulative payoff")
+    ax.set_ylabel("Count")
+    ax.set_title("Distribution of cumulative payoffs")
+    fig.tight_layout()
+
     if output_path:
-        plt.savefig(output_path, dpi=200)
-        plt.close()
+        fig.savefig(output_path, dpi=200)
+        plt.close(fig)
     else:
         plt.show()
 
@@ -246,17 +259,21 @@ def plot_predictor_share_over_time(
             shares[t, j] += 1
     shares /= n_agents
 
-    plt.figure(figsize=(10, 5))
+    rounds = np.arange(1, T + 1)
+
+    fig, ax = plt.subplots(figsize=(10, 5))
     for j in range(n_predictors):
-        plt.plot(shares[:, j], label=predictor_names[j])
-    plt.xlabel("Round")
-    plt.ylabel("Share of agents")
-    plt.title("Predictor usage over time")
-    plt.legend(bbox_to_anchor=(1.02, 1), loc="upper left")
-    plt.tight_layout()
+        ax.plot(rounds, shares[:, j], label=predictor_names[j])
+    ax.set_xlabel("Round")
+    ax.set_ylabel("Share of agents")
+    ax.set_title("Predictor usage over time")
+    ax.set_xlim(1, T)
+    ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left")
+    fig.tight_layout()
+
     if output_path:
-        plt.savefig(output_path, dpi=200, bbox_inches="tight")
-        plt.close()
+        fig.savefig(output_path, dpi=200, bbox_inches="tight")
+        plt.close(fig)
     else:
         plt.show()
 
@@ -285,6 +302,7 @@ def plot_attendance_deviation_over_time(
     ax.set_xlabel("Round")
     ax.set_ylabel(r"Deviation from threshold, $A_t - L$")
     ax.set_title("Attendance deviation from threshold")
+    ax.set_xlim(1, len(rounds))
     ax.legend()
 
     fig.tight_layout()
@@ -317,6 +335,7 @@ def plot_rolling_variance_from_threshold(
     ax.set_xlabel("Round")
     ax.set_ylabel(r"Rolling $\sigma_L^2$")
     ax.set_title(f"Rolling variance from threshold (window={window})")
+    ax.set_xlim(window, arr.size)
 
     fig.tight_layout()
     if output_path:

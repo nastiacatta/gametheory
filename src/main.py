@@ -341,10 +341,10 @@ def run_static_sweep(args: argparse.Namespace) -> None:
     
     out_path = Path(args.output_dir).resolve()
     print(f"\nOutputs saved to: {out_path}")
-    print(f"  - static_probability_sweep.csv")
-    print(f"  - static_payoff_vs_p.png")
-    print(f"  - static_attendance_vs_p.png")
-    print(f"  - static_overcrowding_vs_p.png")
+    print(f"  - tables/static_probability_sweep.csv")
+    print(f"  - figures/static_payoff_vs_p.png")
+    print(f"  - figures/static_attendance_vs_p.png")
+    print(f"  - figures/static_overcrowding_vs_p.png")
     
     p_capacity = args.threshold / args.n_players
     idx = (df["p"] - p_capacity).abs().idxmin()
@@ -434,7 +434,7 @@ def build_parser() -> argparse.ArgumentParser:
     static_sweep_parser.add_argument("--n_samples", type=int, default=10_000, help="Monte Carlo samples per p value")
     static_sweep_parser.add_argument("--grid_size", type=int, default=201, help="Number of p values in [0, 1]")
     static_sweep_parser.add_argument("--seed", type=int, default=42)
-    static_sweep_parser.add_argument("--output_dir", type=str, default="outputs/static_sweep")
+    static_sweep_parser.add_argument("--output_dir", type=str, default="outputs")
 
     return parser
 

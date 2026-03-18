@@ -7,6 +7,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import pandas as pd
+
 from src.analysis.metrics import compute_all_metrics
 from src.analysis.plots import (
     plot_attendance_over_time,
@@ -104,10 +106,7 @@ def main() -> None:
 
     result.rounds_dataframe().to_csv(out / "rounds.csv", index=False)
 
-    import pandas as pd
-
-    player_df = result.players_dataframe().copy()
-    player_df["agent_type"] = [type(a).__name__ for a in agents]
+    player_df = result.players_dataframe()
     player_df.to_csv(out / "players.csv", index=False)
 
     pd.DataFrame([metrics]).to_csv(out / "summary.csv", index=False)

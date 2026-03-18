@@ -95,7 +95,7 @@ def run_probability_sweep(
     n_samples: int = 10_000,
     grid_size: int = 201,
     seed: int = 42,
-    output_dir: str = "outputs/static_sweep",
+    output_dir: str = "outputs",
 ) -> pd.DataFrame:
     """
     Run a sweep over attendance probability p from 0 to 1.
@@ -109,7 +109,7 @@ def run_probability_sweep(
         n_samples: Monte Carlo samples per probability value.
         grid_size: Number of points in [0, 1] grid.
         seed: Random seed for reproducibility.
-        output_dir: Directory for CSV and figure outputs.
+        output_dir: Base directory for outputs (tables/ and figures/ subdirs).
     
     Returns:
         DataFrame with one row per probability value.
@@ -131,29 +131,32 @@ def run_probability_sweep(
     df = pd.DataFrame(rows)
     
     out_path = Path(output_dir)
-    out_path.mkdir(parents=True, exist_ok=True)
+    tables_dir = out_path / "tables"
+    figures_dir = out_path / "figures"
+    tables_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
     
-    csv_path = out_path / "static_probability_sweep.csv"
+    csv_path = tables_dir / "static_probability_sweep.csv"
     df.to_csv(csv_path, index=False)
     
     plot_static_payoff_vs_p(
         df=df,
         threshold=threshold,
         n_players=n_players,
-        output_path=out_path / "static_payoff_vs_p.png",
+        output_path=figures_dir / "static_payoff_vs_p.png",
     )
     
     plot_static_attendance_vs_p(
         df=df,
         threshold=threshold,
         n_players=n_players,
-        output_path=out_path / "static_attendance_vs_p.png",
+        output_path=figures_dir / "static_attendance_vs_p.png",
     )
     
     plot_static_overcrowding_vs_p(
         df=df,
         threshold=threshold,
-        output_path=out_path / "static_overcrowding_vs_p.png",
+        output_path=figures_dir / "static_overcrowding_vs_p.png",
     )
     
     return df
@@ -168,7 +171,7 @@ def main() -> None:
     parser.add_argument("--n_samples", type=int, default=10_000)
     parser.add_argument("--grid_size", type=int, default=201)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--output_dir", type=str, default="outputs/static_sweep")
+    parser.add_argument("--output_dir", type=str, default="outputs")
     args = parser.parse_args()
     
     print(f"Running static probability sweep...")
@@ -187,10 +190,10 @@ def main() -> None:
     
     out_path = Path(args.output_dir).resolve()
     print(f"\nOutputs saved to: {out_path}")
-    print(f"  - static_probability_sweep.csv")
-    print(f"  - static_payoff_vs_p.png")
-    print(f"  - static_attendance_vs_p.png")
-    print(f"  - static_overcrowding_vs_p.png")
+    print(f"  - tables/static_probability_sweep.csv")
+    print(f"  - figures/static_payoff_vs_p.png")
+    print(f"  - figures/static_attendance_vs_p.png")
+    print(f"  - figures/static_overcrowding_vs_p.png")
     
     p_capacity = args.threshold / args.n_players
     idx = (df["p"] - p_capacity).abs().idxmin()

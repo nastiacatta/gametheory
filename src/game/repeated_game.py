@@ -45,6 +45,7 @@ class RepeatedGameResult:
     threshold: int
     rounds: List[RoundResult]
     cumulative_payoffs: List[int]
+    agent_types: List[str]
 
     @property
     def attendance_history(self) -> List[int]:
@@ -106,41 +107,20 @@ class RepeatedGameResult:
             )
         return pd.DataFrame(records)
 
-    def players_dataframe(self, agents: List[BaseAgent] | None = None) -> pd.DataFrame:
+    def players_dataframe(self) -> pd.DataFrame:
         """
         Build a DataFrame with player-level statistics.
         
-        Args:
-            agents: Optional list of agents to extract agent_type and predictor info.
-        
         Returns:
-            DataFrame with player_id, cumulative_payoff, and optional agent metadata.
+            DataFrame with player_id, agent_type, and cumulative_payoff.
         """
-        n_rounds = len(self.rounds)
-        
-        attend_counts = [0] * self.n_players
-        for round_result in self.rounds:
-            for i, action in enumerate(round_result.actions):
-                attend_counts[i] += action
-        
-        data = {
-            "player_id": list(range(self.n_players)),
-            "cumulative_payoff": self.cumulative_payoffs,
-            "mean_round_payoff": [p / n_rounds for p in self.cumulative_payoffs] if n_rounds > 0 else [0.0] * self.n_players,
-            "attend_rate": [c / n_rounds for c in attend_counts] if n_rounds > 0 else [0.0] * self.n_players,
-        }
-        
-        if agents is not None:
-            data["agent_type"] = [type(a).__name__ for a in agents]
-            final_predictors = []
-            for a in agents:
-                if hasattr(a, "active_predictor_name"):
-                    final_predictors.append(a.active_predictor_name)
-                else:
-                    final_predictors.append("")
-            data["final_active_predictor"] = final_predictors
-        
-        return pd.DataFrame(data)
+        return pd.DataFrame(
+            {
+                "player_id": np.arange(self.n_players),
+                "agent_type": self.agent_types,
+                "cumulative_payoff": self.cumulative_payoffs,
+            }
+        )
 
     def save_outputs(self, output_dir: str | Path) -> None:
         output_path = Path(output_dir)
@@ -269,4 +249,5 @@ class RepeatedMinorityGame:
             threshold=self.threshold,
             rounds=rounds,
             cumulative_payoffs=cumulative_payoffs,
+            agent_types=[type(agent).__name__ for agent in self.agents],
         )

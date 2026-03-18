@@ -74,6 +74,12 @@ class SoftmaxPredictorAgent(BaseAgent):
         for j, pred in enumerate(self._last_predictions):
             self.scores[j] -= abs(pred - realised_attendance)
 
+    def reset(self) -> None:
+        self.scores = [0.0] * len(self.predictors)
+        self._last_predictions = [0.0] * len(self.predictors)
+        self._active_idx = 0
+        self.predictor_history = []
+
     @property
     def active_predictor_name(self) -> str:
         return self.predictor_names[self._active_idx]
