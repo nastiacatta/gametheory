@@ -2,7 +2,7 @@
 Base agent interface for the minority game.
 
 The coursework brief motivates repeated play where agents observe the
-attendance history and may adapt between rounds (Arthur-style inductive
+attendance history and may adapt between rounds (Arthur-inspired inductive
 predictors). For that reason, agents receive a round context containing
 the shared state they may condition on.
 """

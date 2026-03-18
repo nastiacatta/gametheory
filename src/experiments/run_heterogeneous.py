@@ -29,9 +29,12 @@ def main() -> None:
     parser.add_argument("--n_rounds", type=int, default=200)
     parser.add_argument("--p_best", type=float, default=0.5, help="Share of best-predictor (mix mode)")
     parser.add_argument("--p_softmax", type=float, default=0.5, help="Share of softmax (mix mode)")
+    parser.add_argument("--p_random", type=float, default=0.0, help="Share of random agents (mix mode)")
     parser.add_argument("--n_producers", type=int, default=50, help="Producer count (producer_speculator mode)")
     parser.add_argument("--speculator_type", choices=["best", "softmax"], default="best")
     parser.add_argument("--beta", type=float, default=1.0)
+    parser.add_argument("--producer_base_prediction", type=float, default=None, help="Producer base prediction (defaults to threshold)")
+    parser.add_argument("--producer_noise_std", type=float, default=5.0, help="Producer noise std")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output_dir", type=str, default="outputs/heterogeneous")
     args = parser.parse_args()
@@ -48,8 +51,10 @@ def main() -> None:
             config.n_players,
             p_best=args.p_best,
             p_softmax=args.p_softmax,
-            p_random=0.0,
+            p_random=args.p_random,
             beta=args.beta,
+            predictors_per_agent=3,
+            seed=config.seed,
         )
     else:
         agents = build_producer_speculator(
@@ -57,6 +62,11 @@ def main() -> None:
             n_producers=args.n_producers,
             speculator_type=args.speculator_type,
             beta=args.beta,
+            predictors_per_agent=3,
+            seed=config.seed,
+            producer_base_prediction=args.producer_base_prediction,
+            producer_noise_std=args.producer_noise_std,
+            threshold=config.threshold,
         )
 
     game = RepeatedMinorityGame(

@@ -1,24 +1,39 @@
 """
-Arthur-style attendance predictor library for the El Farol game.
+Arthur-inspired fixed predictor library for coursework experiments.
 
 Each predictor is a callable (history, n_players, threshold) -> float
 returning a predicted attendance for the next round.  When history is
 too short the predictor falls back to the threshold as a default.
 
-The six predictors below follow Arthur (1994):
+A fixed master library used by this repo, inspired by predictor-based
+inductive strategies.  Not intended as an exact reconstruction of
+Arthur's original predictor assignment process.  The library includes:
     1. last_value           — same as last week
     2. mirror               — n - last week  (contrarian)
-    3. rolling_mean(k=4)    — average of last k weeks
-    4. linear_trend(k=8)    — extrapolate slope over last k weeks
-    5. lag_cycle(lag=2)      — same as 2 weeks ago
-    6. lag_cycle(lag=5)      — same as 5 weeks ago
+    3. rolling_mean(k)      — average of last k weeks
+    4. linear_trend(k)      — extrapolate slope over last k weeks
+    5. lag_cycle(lag)       — same as *lag* weeks ago
+    6. rolling_median(k)    — median of last k weeks
+    7. mean_all_history     — mean of entire history
+    8. mirror_threshold     — mirror around threshold
 """
 
 from __future__ import annotations
 
+from statistics import median
 from typing import Callable, List, Tuple
 
 Predictor = Callable[[Tuple[int, ...], int, int], float]
+
+
+def _clip_prediction(value: float, n_players: int) -> float:
+    """Clip prediction to valid range [0, n_players]."""
+    return max(0.0, min(float(n_players), float(value)))
+
+
+def _fallback_threshold(history: Tuple[int, ...], threshold: int) -> float:
+    """Default fallback when history is too short."""
+    return float(threshold)
 
 
 def last_value(history: Tuple[int, ...], n_players: int, threshold: int) -> float:
@@ -80,13 +95,70 @@ def make_lag_cycle(lag: int) -> Predictor:
     return predictor
 
 
+def make_rolling_median(window: int) -> Predictor:
+    """Factory: median attendance over the last *window* rounds."""
+
+    def predictor(history: Tuple[int, ...], n_players: int, threshold: int) -> float:
+        if len(history) < window:
+            return _fallback_threshold(history, threshold)
+        return _clip_prediction(median(history[-window:]), n_players)
+
+    predictor.__name__ = f"rolling_median_{window}"
+    predictor.__qualname__ = f"rolling_median_{window}"
+    return predictor
+
+
+def mean_all_history(history: Tuple[int, ...], n_players: int, threshold: int) -> float:
+    """Predict using the mean of all recorded attendance."""
+    if not history:
+        return _fallback_threshold(history, threshold)
+    return _clip_prediction(sum(history) / len(history), n_players)
+
+
+def mirror_threshold(history: Tuple[int, ...], n_players: int, threshold: int) -> float:
+    """Mirror last attendance around the threshold: pred = 2*threshold - last."""
+    if not history:
+        return _fallback_threshold(history, threshold)
+    return _clip_prediction(2.0 * threshold - history[-1], n_players)
+
+
 def default_predictor_library() -> List[Tuple[str, Predictor]]:
-    """Return the standard six-predictor library based on Arthur (1994)."""
+    """Return the fixed master predictor library used by this repo.
+    
+    Inspired by predictor-based inductive strategies, not intended as an
+    exact reconstruction of Arthur's original predictor assignment process.
+    """
     return [
         ("last_value", last_value),
         ("mirror", mirror),
+        ("rolling_mean_2", make_rolling_mean(2)),
+        ("rolling_mean_3", make_rolling_mean(3)),
         ("rolling_mean_4", make_rolling_mean(4)),
+        ("rolling_mean_5", make_rolling_mean(5)),
+        ("rolling_mean_8", make_rolling_mean(8)),
+        ("mean_all_history", mean_all_history),
+        ("mirror_threshold", mirror_threshold),
+        ("linear_trend_3", make_linear_trend(3)),
+        ("linear_trend_5", make_linear_trend(5)),
         ("linear_trend_8", make_linear_trend(8)),
         ("lag_2_cycle", make_lag_cycle(2)),
         ("lag_5_cycle", make_lag_cycle(5)),
+        ("rolling_median_3", make_rolling_median(3)),
+        ("rolling_median_5", make_rolling_median(5)),
     ]
+
+
+def sample_predictor_library(
+    rng,
+    k: int,
+) -> List[Tuple[str, Predictor]]:
+    """
+    Sample k distinct predictors without replacement from the fixed master library.
+    Used to give each adaptive agent its own predictor bank while keeping a common
+    master library for reproducibility.
+    """
+    library = default_predictor_library()
+    if not (1 <= k <= len(library)):
+        raise ValueError(f"k must be between 1 and {len(library)}.")
+    idx = rng.choice(len(library), size=k, replace=False)
+    return [library[int(i)] for i in idx]

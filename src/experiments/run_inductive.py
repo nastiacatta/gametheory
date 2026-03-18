@@ -41,9 +41,13 @@ def main() -> None:
     )
 
     if args.mode == "best":
-        agents = build_homogeneous_best_predictor(config.n_players)
+        agents = build_homogeneous_best_predictor(
+            config.n_players, predictors_per_agent=3, seed=config.seed
+        )
     else:
-        agents = build_homogeneous_softmax(config.n_players, beta=args.beta)
+        agents = build_homogeneous_softmax(
+            config.n_players, beta=args.beta, predictors_per_agent=3, seed=config.seed
+        )
 
     game = RepeatedMinorityGame(
         n_players=config.n_players,
