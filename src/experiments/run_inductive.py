@@ -34,6 +34,7 @@ def main() -> None:
     parser.add_argument("--threshold", type=int, default=60)
     parser.add_argument("--n_rounds", type=int, default=200)
     parser.add_argument("--beta", type=float, default=1.0, help="Softmax inverse temperature")
+    parser.add_argument("--predictors_per_agent", type=int, default=6, help="Number of predictors per agent")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output_dir", type=str, default="outputs/inductive")
     args = parser.parse_args()
@@ -47,11 +48,11 @@ def main() -> None:
 
     if args.mode == "best":
         agents = build_homogeneous_best_predictor(
-            config.n_players, predictors_per_agent=3, seed=config.seed
+            config.n_players, predictors_per_agent=args.predictors_per_agent, seed=config.seed
         )
     else:
         agents = build_homogeneous_softmax(
-            config.n_players, beta=args.beta, predictors_per_agent=3, seed=config.seed
+            config.n_players, beta=args.beta, predictors_per_agent=args.predictors_per_agent, seed=config.seed
         )
 
     game = RepeatedMinorityGame(

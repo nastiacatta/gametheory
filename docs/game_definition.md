@@ -1,6 +1,15 @@
-# El Farol Threshold Game: Mathematical Definition
+# El Farol Threshold Minority Game: Mathematical Definition
 
-This document provides the formal game-theoretic definition of the El Farol threshold game implemented in this repository. The model is inspired by Arthur's (1994) inductive reasoning framework but should not be conflated with the canonical Challet–Zhang Minority Game without explicit justification.
+This document provides the formal game-theoretic definition of the El Farol threshold minority game implemented in this repository. The model is inspired by Arthur's (1994) inductive reasoning framework but should not be conflated with the canonical Challet–Zhang Minority Game.
+
+## Key Design Choices
+
+This implementation makes the following explicit design choices, which are consistent throughout the codebase:
+
+1. **Binary actions \(\{0, 1\}\):** Players choose to stay home (0) or attend (1). This differs from the canonical MG's symmetric \(\{-1, +1\}\) action space.
+2. **Weak threshold payoff:** Attendees win (+1) when \(A \le L\), not under strict inequality \(A < L\).
+3. **Fixed stay-home payoff:** The payoff for staying home is always 0, serving as a neutral outside option. This is a modelling assumption; alternative formulations might assign a non-zero or state-dependent payoff to the outside option.
+4. **Predictor-based induction:** Agents use Arthur-inspired forecasting heuristics, not the canonical MG's lookup-table strategy space.
 
 ---
 
@@ -46,7 +55,9 @@ u_i(\mathbf{a}) =
 - Attendees receive payoff \(-1\) when attendance exceeds capacity.
 - Staying home yields a neutral payoff of \(0\).
 
-**Remark.** Some formulations (including Arthur's original El Farol description) use a strict inequality (\(A < L\)) for the positive payoff. The choice affects equilibrium attendance by one unit. This repository uses the weak inequality (\(A \le L\)) throughout.
+**Remark 1 (Weak vs. strict threshold).** Some formulations (including Arthur's original El Farol description) use a strict inequality (\(A < L\)) for the positive payoff. The choice affects equilibrium attendance by one unit. This repository uses the weak inequality (\(A \le L\)) throughout.
+
+**Remark 2 (Fixed outside option).** The stay-home payoff is fixed at \(u_i(0) = 0\) for all players in all states. This serves as a neutral outside option and simplifies the equilibrium analysis. Alternative models might specify a positive stay-home utility (e.g., enjoying a quiet evening) or a state-dependent outside option. The choice of \(u_i(0) = 0\) is a modelling assumption that must be stated explicitly when comparing results across different formulations.
 
 ---
 

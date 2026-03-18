@@ -18,17 +18,23 @@ def plot_attendance_over_time(
     output_path: Optional[Path] = None,
 ) -> None:
     """Attendance A_t over time with horizontal line at L."""
-    plt.figure(figsize=(10, 5))
-    plt.plot(attendance_history)
-    plt.axhline(threshold, linestyle="--", color="gray", label=f"L={threshold}")
-    plt.xlabel("Round")
-    plt.ylabel("Attendance")
-    plt.title("Attendance over time")
-    plt.legend()
-    plt.tight_layout()
+    if not attendance_history:
+        return
+
+    rounds = np.arange(1, len(attendance_history) + 1)
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(rounds, attendance_history, linewidth=1.2)
+    ax.axhline(threshold, linestyle="--", color="gray", label=f"L = {threshold}")
+    ax.set_xlabel("Round")
+    ax.set_ylabel("Attendance")
+    ax.set_title("Attendance over time")
+    ax.legend()
+    fig.tight_layout()
+
     if output_path:
-        plt.savefig(output_path, dpi=200)
-        plt.close()
+        fig.savefig(output_path, dpi=250)
+        plt.close(fig)
     else:
         plt.show()
 

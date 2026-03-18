@@ -1,0 +1,232 @@
+"""
+Fixed-predictor baseline experiment for the repeated El Farol game.
+
+Each player is randomly assigned one predictor from the library at the start
+and uses that same predictor throughout all rounds. This serves as a non-adaptive
+baseline for comparison with inductive agents that switch predictors.
+
+Key distinction from inductive strategies:
+- Fixed: one predictor per agent, no scoring, no switching
+- Inductive: bank of predictors, track accuracy scores, switch to best
+
+Outputs:
+- Standard repeated-game outputs via RepeatedGameResult.save_outputs()
+- Additional CSV: predictor_assignment_counts.csv
+- Additional plot: predictor_summary.png
+"""
+
+from __future__ import annotations
+
+from collections import Counter
+from pathlib import Path
+from typing import List, Tuple
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+from src.agents.base import BaseAgent
+from src.agents.fixed_predictor_agent import FixedPredictorAgent
+from src.agents.predictors import Predictor, default_predictor_library
+from src.game.repeated_game import RepeatedMinorityGame, RepeatedGameResult
+
+
+def assign_fixed_predictors(
+    n_players: int,
+    predictor_library: List[Tuple[str, Predictor]],
+    rng: np.random.Generator,
+) -> List[FixedPredictorAgent]:
+    """
+    Randomly assign one predictor to each player (with replacement).
+
+    Parameters
+    ----------
+    n_players : int
+        Number of agents to create.
+    predictor_library : list of (name, predictor_fn)
+        Available predictors to choose from.
+    rng : np.random.Generator
+        Random generator for reproducible assignment.
+
+    Returns
+    -------
+    list of FixedPredictorAgent
+        Population of agents, each with one assigned predictor.
+    """
+    indices = rng.integers(0, len(predictor_library), size=n_players)
+    agents = []
+    for idx in indices:
+        name, fn = predictor_library[idx]
+        agents.append(FixedPredictorAgent(predictor_name=name, predictor_fn=fn))
+    return agents
+
+
+def count_predictor_assignments(agents: List[FixedPredictorAgent]) -> dict[str, int]:
+    """Count how many agents are assigned to each predictor."""
+    names = [agent.predictor_name for agent in agents]
+    return dict(Counter(names))
+
+
+def compute_predictor_payoffs(
+    agents: List[FixedPredictorAgent],
+    cumulative_payoffs: List[int],
+) -> pd.DataFrame:
+    """
+    Compute mean cumulative payoff per predictor type.
+
+    Returns DataFrame with columns: predictor_name, n_users, mean_payoff, std_payoff
+    """
+    from collections import defaultdict
+
+    grouped: dict[str, list[int]] = defaultdict(list)
+    for agent, payoff in zip(agents, cumulative_payoffs):
+        grouped[agent.predictor_name].append(payoff)
+
+    records = []
+    for name in sorted(grouped.keys()):
+        payoffs = grouped[name]
+        records.append({
+            "predictor_name": name,
+            "n_users": len(payoffs),
+            "mean_payoff": float(np.mean(payoffs)),
+            "std_payoff": float(np.std(payoffs)) if len(payoffs) > 1 else 0.0,
+        })
+    return pd.DataFrame(records)
+
+
+def plot_predictor_summary(
+    predictor_df: pd.DataFrame,
+    output_path: Path | None = None,
+) -> None:
+    """
+    Bar chart showing predictor assignment counts and mean payoffs.
+
+    Two-axis plot:
+    - Left axis (blue bars): number of users assigned to each predictor
+    - Right axis (orange bars): mean cumulative payoff per user
+    """
+    if predictor_df.empty:
+        return
+
+    predictor_names = predictor_df["predictor_name"].tolist()
+    n_users = predictor_df["n_users"].to_numpy()
+    mean_payoff = predictor_df["mean_payoff"].to_numpy()
+
+    x = np.arange(len(predictor_names))
+    width = 0.4
+
+    fig, ax1 = plt.subplots(figsize=(14, 6))
+    ax2 = ax1.twinx()
+
+    ax1.bar(x - width / 2, n_users, width=width, color="steelblue", label="# users")
+    ax2.bar(x + width / 2, mean_payoff, width=width, color="darkorange", alpha=0.8, label="Mean payoff")
+
+    ax1.set_xlabel("Predictor")
+    ax1.set_ylabel("Number of users", color="steelblue")
+    ax2.set_ylabel("Mean cumulative payoff", color="darkorange")
+    ax1.set_title("Fixed-Predictor Baseline: Assignment Counts and Mean Payoff")
+
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(predictor_names, rotation=45, ha="right")
+    ax1.tick_params(axis="y", labelcolor="steelblue")
+    ax2.tick_params(axis="y", labelcolor="darkorange")
+
+    ax1.axhline(0, color="black", linewidth=0.5)
+    ax2.axhline(0, color="black", linewidth=0.5, linestyle="--")
+
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper right")
+
+    fig.tight_layout()
+
+    if output_path:
+        fig.savefig(output_path, dpi=200)
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def run_fixed_predictor_baseline(
+    n_players: int = 101,
+    threshold: int = 60,
+    n_rounds: int = 200,
+    seed: int = 42,
+    output_dir: Path | str = "outputs/fixed_predictor_baseline",
+) -> Tuple[RepeatedGameResult, pd.DataFrame]:
+    """
+    Run the fixed-predictor baseline experiment.
+
+    Parameters
+    ----------
+    n_players : int
+        Number of players (default: 101 per coursework).
+    threshold : int
+        Capacity threshold L (default: 60 per coursework).
+    n_rounds : int
+        Number of repeated rounds (default: 200 per coursework).
+    seed : int
+        Random seed for reproducibility.
+    output_dir : Path or str
+        Directory for outputs.
+
+    Returns
+    -------
+    (RepeatedGameResult, pd.DataFrame)
+        Game result and predictor summary DataFrame.
+    """
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    rng = np.random.default_rng(seed)
+    predictor_library = default_predictor_library()
+
+    print(f"Running fixed-predictor baseline: n={n_players}, L={threshold}, "
+          f"rounds={n_rounds}, seed={seed}")
+    print(f"Predictor library size: {len(predictor_library)}")
+
+    agents = assign_fixed_predictors(n_players, predictor_library, rng)
+
+    assignment_counts = count_predictor_assignments(agents)
+    print("\nPredictor assignment counts:")
+    for name, count in sorted(assignment_counts.items()):
+        print(f"  {name}: {count}")
+
+    game = RepeatedMinorityGame(
+        n_players=n_players,
+        threshold=threshold,
+        n_rounds=n_rounds,
+        agents=agents,
+        seed=seed,
+    )
+    result = game.play()
+
+    result.save_outputs(output_path)
+    print(f"\nSaved standard repeated-game outputs to: {output_path}")
+
+    predictor_df = compute_predictor_payoffs(agents, result.cumulative_payoffs)
+    predictor_df.to_csv(output_path / "predictor_summary.csv", index=False)
+    print(f"Saved: {output_path / 'predictor_summary.csv'}")
+
+    assignment_df = pd.DataFrame([
+        {"predictor_name": name, "n_assigned": count}
+        for name, count in sorted(assignment_counts.items())
+    ])
+    assignment_df.to_csv(output_path / "predictor_assignment_counts.csv", index=False)
+    print(f"Saved: {output_path / 'predictor_assignment_counts.csv'}")
+
+    plot_predictor_summary(predictor_df, output_path / "predictor_summary.png")
+    print(f"Saved: {output_path / 'predictor_summary.png'}")
+
+    summary = result.summary()
+    print(f"\nSummary metrics:")
+    print(f"  Mean attendance: {summary['mean_attendance']:.2f}")
+    print(f"  Std attendance: {summary['std_attendance']:.2f}")
+    print(f"  Overcrowding rate: {summary['overcrowding_rate']:.4f}")
+    print(f"  Mean cumulative payoff: {summary['mean_cumulative_payoff']:.2f}")
+
+    return result, predictor_df
+
+
+if __name__ == "__main__":
+    run_fixed_predictor_baseline()

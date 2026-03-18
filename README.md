@@ -1,8 +1,14 @@
-# El Farol Threshold Game: Static and Repeated Simulations
+# El Farol Threshold Minority Game: Static, Repeated, and Inductive Simulators
 
-Simulation code for the El Farol threshold game in normal form, with minority-game-inspired inductive extensions. Configurable player count \(n\), capacity threshold \(L\), and horizon \(m\) for the repeated game. Designed for coursework; emphasis on reproducibility and theoretical accuracy.
+Simulation code for the **El Farol threshold game** with minority-game-inspired inductive extensions. This repository implements a threshold-based coordination game where:
 
-**Note:** This implementation is based on Arthur's (1994) El Farol problem and should not be conflated with the canonical Challet–Zhang Minority Game without explicit justification. See `docs/game_definition.md` for the precise mathematical distinction.
+1. **Actions are binary (0/1):** Each player chooses to **stay home** (0) or **go to the bar** (1).
+2. **Payoff rule is threshold-based with the weak convention:** Attendees receive +1 if total attendance \(A \le L\), and −1 if \(A > L\). Staying home always yields 0.
+3. **Arthur-inspired but not canonical MG:** This implementation draws on Arthur's (1994) El Farol problem and uses predictor-based inductive reasoning. It is **not** the canonical Challet–Zhang Minority Game, which uses symmetric actions \(\{-1, +1\}\), binary history strings of length \(M\), lookup-table strategies, and the control parameter \(\alpha = 2^M / N\).
+
+Configurable parameters: player count \(n\) (default 101), capacity threshold \(L\) (default 60), and horizon \(m\) (default 200 rounds). Designed for coursework; emphasis on reproducibility and theoretical accuracy.
+
+See `docs/game_definition.md` for the full mathematical definition and distinction from the canonical Minority Game.
 
 ## Requirements
 
@@ -31,24 +37,70 @@ python -m pytest
 
 Default coursework parameters: **n = 101**, **L = 60**, **m = 200**.
 
+### Unified CLI
+
+All experiments can be run through the unified CLI with subcommands:
+
 **Static (single-shot) game:**
 
 ```bash
 python -m src.main static [--n_players 101] [--threshold 60] [--seed 42]
 ```
 
-**Repeated game (default 200 rounds):**
+**Repeated game with basic populations:**
 
 ```bash
-python -m src.main repeated [--n_players 101] [--threshold 60] [--n_rounds 200] [--seed 42] [--output_dir outputs]
+python -m src.main repeated [--n_players 101] [--threshold 60] [--n_rounds 200] [--seed 42] [--output_dir outputs/repeated]
+```
+
+**Inductive agents (predictor-based):**
+
+```bash
+# Best-predictor (hard argmax)
+python -m src.main inductive --mode best --n_rounds 200
+
+# Softmax selection with temperature
+python -m src.main inductive --mode softmax --beta 1.0 --n_rounds 200
+
+# Recency-weighted with exponential forgetting
+python -m src.main inductive --mode recency --lambda_decay 0.95 --n_rounds 200
+
+# Turnover agent with predictor replacement
+python -m src.main inductive --mode turnover --patience 15 --n_rounds 200
+```
+
+**Heterogeneous populations:**
+
+```bash
+# Mixed best/softmax/random
+python -m src.main heterogeneous --mode mix --p_best 0.4 --p_softmax 0.4 --p_random 0.2
+
+# Producer/speculator split
+python -m src.main heterogeneous --mode producer_speculator --n_producers 50
+```
+
+**Multi-seed parameter sweep:**
+
+```bash
+python -m src.main sweep --n_seeds 50 --n_rounds 200 1000 --output_dir outputs/sweep
+```
+
+### Additional Experiment Runners
+
+```bash
+# Static equilibrium theory (pure NE count, mixed p*)
+python -m src.experiments.run_static_theory --n_players 101 --threshold 60
+
+# Case study with real-world-inspired agent types
+python -m src.experiments.run_case_study --n_rounds 200 --output_dir outputs/case_study
 ```
 
 Outputs (CSVs and figures) are written to `--output_dir`. The repeated runner writes:
 
-- `repeated_rounds.csv`: round-by-round attendance, overcrowding, mean round payoff
-- `repeated_players.csv`: player-level cumulative payoffs
-- `repeated_summary.csv`: summary metrics (threshold-centred deviation measures)
-- `attendance_over_time.png`, `cumulative_average_attendance.png`
+- `rounds.csv`: round-by-round attendance, deviations, overcrowding, mean payoff, cumulative metrics
+- `players.csv`: player-level cumulative payoffs, agent types, attend rates
+- `summary.csv`: summary metrics (threshold-centred deviation measures)
+- Plots: `attendance.png`, `attendance_deviation.png`, `cum_avg_attendance.png`, etc.
 
 ## Game Definition (Weak Threshold)
 
@@ -69,11 +121,41 @@ See `docs/game_definition.md` for full definitions, proofs, and theoretical anal
 
 ## Inductive Strategies and Experiments
 
-**Agents:** `RandomAgent`, `FixedAttendanceAgent`, `BestPredictorAgent` (Arthur-inspired argmax), `SoftmaxPredictorAgent` (temperature-based), `ProducerAgent` (non-adaptive noisy threshold).
+### Agent Types
 
-**Predictor-based adaptation:** Agents maintain accuracy scores for a bank of forecasting heuristics. The master library (`src/agents/predictors.py`) includes last-value, contrarian, rolling mean/median, linear trend, and lagged-cycle predictors. These are **Arthur-inspired inductive heuristics**, not a reconstruction of any canonical predictor list.
+**Basic agents:**
+- `RandomAgent`: Independent random choice with fixed probability
+- `FixedAttendanceAgent`: Fixed prediction-based decision
+- `ProducerAgent`: Non-adaptive noisy threshold predictor
 
-**Experiment runners:**
+**Predictor-based inductive agents:**
+- `BestPredictorAgent`: Hard argmax over predictor scores (Arthur-inspired)
+- `SoftmaxPredictorAgent`: Boltzmann selection with temperature parameter β
+- `RecencyWeightedPredictorAgent`: Exponential score decay for faster adaptation to regime changes
+- `TurnoverPredictorAgent`: Arthur-style hypothesis replacement when active predictor underperforms
+
+### Predictor Library
+
+Agents maintain accuracy scores for a bank of forecasting heuristics. The master library (`src/agents/predictors.py`) includes:
+- Last-value extrapolation
+- Contrarian (mirror) strategies
+- Rolling means and medians
+- Linear trend extrapolation
+- Lagged-cycle predictors
+
+These are **Arthur-inspired inductive heuristics**, not a reconstruction of any canonical predictor list.
+
+### Score Update Rules
+
+**Cumulative scoring (Best, Softmax):**
+\[s_{ij}(t+1) = s_{ij}(t) - |\hat{A}_{ij}(t) - A_t|\]
+
+**Recency-weighted scoring (Recency, Turnover):**
+\[s_{ij}(t+1) = \lambda \cdot s_{ij}(t) - |\hat{A}_{ij}(t) - A_t|, \quad \lambda \in (0,1]\]
+
+Lower λ = faster forgetting of past performance.
+
+### Experiment Runners
 
 ```bash
 python -m src.experiments.run_repeated_baselines --n_rounds 200 --output_dir outputs/baselines
@@ -81,6 +163,7 @@ python -m src.experiments.run_inductive --mode best --n_rounds 200 --output_dir 
 python -m src.experiments.run_inductive --mode softmax --beta 1.0 --n_rounds 200
 python -m src.experiments.run_heterogeneous --mode mix --p_best 0.4 --p_softmax 0.4 --p_random 0.2 --n_rounds 200
 python -m src.experiments.run_heterogeneous --mode producer_speculator --n_producers 50 --n_rounds 200
+python -m src.experiments.run_case_study --output_dir outputs/case_study
 ```
 
 Each experiment writes `rounds.csv`, `players.csv`, `summary.csv` plus figures into its `--output_dir`.

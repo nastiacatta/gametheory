@@ -24,7 +24,7 @@ from src.agents.predictors import Predictor, default_predictor_library
 class BestPredictorAgent(BaseAgent):
     """
     Arthur-inspired predictor-selection agent: hard-argmax over predictor scores.
-    Ties are broken in favour of the lowest-index predictor.
+    Ties are broken randomly (uniform selection among best candidates).
     """
 
     def __init__(
@@ -41,14 +41,16 @@ class BestPredictorAgent(BaseAgent):
         self.predictor_history: List[int] = []
 
     def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
-        # This agent does not need randomness for selection, but uses RNG signature for consistency.
-        _ = rng
         predictions = [
             p(context.attendance_history, context.n_players, context.threshold) for p in self.predictors
         ]
         self._last_predictions = predictions
 
-        best_idx = max(range(len(self.scores)), key=lambda j: self.scores[j])
+        scores_arr = np.array(self.scores)
+        best_value = scores_arr.max()
+        best_candidates = np.flatnonzero(scores_arr == best_value)
+        best_idx = int(rng.choice(best_candidates))
+
         self._active_idx = best_idx
         self.predictor_history.append(best_idx)
 

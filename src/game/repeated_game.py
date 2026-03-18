@@ -66,26 +66,81 @@ class RepeatedGameResult:
         )
 
     def rounds_dataframe(self) -> pd.DataFrame:
+        """
+        Build a DataFrame with round-level statistics.
+
+        The theoretical_total_round_payoff column validates the simulation:
+            sum_i u_i(t) = A_t if A_t <= L, else -A_t
+        
+        Cumulative columns track running averages for report tables.
+        """
         records = []
+        cumulative_attendance = 0
+        cumulative_overcrowded = 0
+        
         for round_result in self.rounds:
+            cumulative_attendance += round_result.attendance
+            cumulative_overcrowded += int(round_result.overcrowded)
+            t = round_result.round_index + 1
+            
+            deviation = round_result.attendance - self.threshold
             records.append(
                 {
-                    "round": round_result.round_index,
+                    "round": t,
                     "attendance": round_result.attendance,
                     "attendance_rate": round_result.attendance / self.n_players,
+                    "deviation_from_threshold": deviation,
+                    "abs_deviation_from_threshold": abs(deviation),
+                    "squared_deviation_from_threshold": deviation**2,
                     "overcrowded": int(round_result.overcrowded),
                     "mean_round_payoff": float(np.mean(round_result.payoffs)),
+                    "total_round_payoff": int(np.sum(round_result.payoffs)),
+                    "theoretical_total_round_payoff": int(
+                        round_result.attendance
+                        if round_result.attendance <= self.threshold
+                        else -round_result.attendance
+                    ),
+                    "cumulative_mean_attendance": cumulative_attendance / t,
+                    "cumulative_overcrowding_rate": cumulative_overcrowded / t,
                 }
             )
         return pd.DataFrame(records)
 
-    def players_dataframe(self) -> pd.DataFrame:
-        return pd.DataFrame(
-            {
-                "player_id": list(range(self.n_players)),
-                "cumulative_payoff": self.cumulative_payoffs,
-            }
-        )
+    def players_dataframe(self, agents: List[BaseAgent] | None = None) -> pd.DataFrame:
+        """
+        Build a DataFrame with player-level statistics.
+        
+        Args:
+            agents: Optional list of agents to extract agent_type and predictor info.
+        
+        Returns:
+            DataFrame with player_id, cumulative_payoff, and optional agent metadata.
+        """
+        n_rounds = len(self.rounds)
+        
+        attend_counts = [0] * self.n_players
+        for round_result in self.rounds:
+            for i, action in enumerate(round_result.actions):
+                attend_counts[i] += action
+        
+        data = {
+            "player_id": list(range(self.n_players)),
+            "cumulative_payoff": self.cumulative_payoffs,
+            "mean_round_payoff": [p / n_rounds for p in self.cumulative_payoffs] if n_rounds > 0 else [0.0] * self.n_players,
+            "attend_rate": [c / n_rounds for c in attend_counts] if n_rounds > 0 else [0.0] * self.n_players,
+        }
+        
+        if agents is not None:
+            data["agent_type"] = [type(a).__name__ for a in agents]
+            final_predictors = []
+            for a in agents:
+                if hasattr(a, "active_predictor_name"):
+                    final_predictors.append(a.active_predictor_name)
+                else:
+                    final_predictors.append("")
+            data["final_active_predictor"] = final_predictors
+        
+        return pd.DataFrame(data)
 
     def save_outputs(self, output_dir: str | Path) -> None:
         output_path = Path(output_dir)

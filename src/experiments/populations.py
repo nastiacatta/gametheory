@@ -20,7 +20,9 @@ from src.agents.fixed_attendance_agent import FixedAttendanceAgent
 from src.agents.predictors import default_predictor_library, sample_predictor_library
 from src.agents.producer_agent import ProducerAgent
 from src.agents.random_agent import RandomAgent
+from src.agents.recency_weighted_predictor_agent import RecencyWeightedPredictorAgent
 from src.agents.softmax_predictor_agent import SoftmaxPredictorAgent
+from src.agents.turnover_predictor_agent import TurnoverPredictorAgent
 
 
 def _adaptive_bank(rng: np.random.Generator, predictors_per_agent: int):
@@ -131,6 +133,56 @@ def build_heterogeneous(
     )
     agents.extend(RandomAgent(p_attend=0.5) for _ in range(n_random))
     return agents
+
+
+def build_homogeneous_recency(
+    n_players: int,
+    lambda_decay: float = 0.95,
+    selection: str = "argmax",
+    beta: float = 1.0,
+    predictors_per_agent: int = 6,
+    seed: int = 42,
+) -> List[BaseAgent]:
+    """All agents use recency-weighted predictor selection with exponential decay."""
+    _max_k = len(default_predictor_library())
+    if not (1 <= predictors_per_agent <= _max_k):
+        raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
+    rng = np.random.default_rng(seed)
+    return [
+        RecencyWeightedPredictorAgent(
+            predictors=_adaptive_bank(rng, predictors_per_agent),
+            lambda_decay=lambda_decay,
+            selection=selection,
+            beta=beta,
+        )
+        for _ in range(n_players)
+    ]
+
+
+def build_homogeneous_turnover(
+    n_players: int,
+    lambda_decay: float = 0.95,
+    patience: int = 10,
+    error_threshold: float = 5.0,
+    predictors_per_agent: int = 6,
+    seed: int = 42,
+) -> List[BaseAgent]:
+    """All agents use turnover predictor selection with hypothesis replacement."""
+    _max_k = len(default_predictor_library())
+    if not (1 <= predictors_per_agent <= _max_k):
+        raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
+    rng = np.random.default_rng(seed)
+    master_lib = default_predictor_library()
+    return [
+        TurnoverPredictorAgent(
+            predictors=_adaptive_bank(rng, predictors_per_agent),
+            lambda_decay=lambda_decay,
+            patience=patience,
+            error_threshold=error_threshold,
+            master_library=master_lib,
+        )
+        for _ in range(n_players)
+    ]
 
 
 def build_producer_speculator(
