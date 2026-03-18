@@ -65,15 +65,21 @@ This sweeps attendance probability $p \in [0, 1]$ and outputs:
 python -m src.main repeated [--n_players 101] [--threshold 60] [--n_rounds 200] [--seed 42] [--output_dir outputs/repeated]
 ```
 
-**Inductive agents (predictor-based):**
+**Inductive agents (predictor-based, virtual-payoff scoring):**
 
 ```bash
-# Non-recency: cumulative scoring
-python -m src.main inductive --mode non_recency --n_rounds 200
+# Final default model
+python -m src.main inductive --mode recency --lambda_decay 0.95 --predictors_per_agent 6 --n_rounds 200
 
-# Recency: exponentially decayed scoring
-python -m src.main inductive --mode recency --lambda_decay 0.95 --n_rounds 200
+# Non-recency ablation
+python -m src.main inductive --mode non_recency --predictors_per_agent 6 --n_rounds 200
 ```
+
+Each adaptive agent is assigned a random subset of predictors from the master predictor library.
+The default is:
+- predictors_per_agent = 6
+- mode = recency
+- scoring = virtual payoff
 
 **Heterogeneous populations:**
 
@@ -150,17 +156,17 @@ These are **Arthur-inspired inductive heuristics**, not a reconstruction of any 
 
 ### Score Update Rules
 
-Two modes based on memory treatment:
+Two modes based on memory treatment, using **virtual payoff** under the weak-threshold convention:
 
-**Non-recency (cumulative scoring):**
+**Non-recency (cumulative virtual payoff):**
 
-$$s_j(t+1) = s_j(t) - |\hat{A}_j(t) - A_t|$$
+$$s_j(t+1) = s_j(t) + \tilde{u}_j(t)$$
 
-**Recency (exponentially decayed scoring):**
+**Recency (exponentially decayed virtual payoff):**
 
-$$s_j(t+1) = \lambda \cdot s_j(t) - |\hat{A}_j(t) - A_t|, \quad \lambda \in (0,1]$$
+$$s_j(t+1) = \lambda \cdot s_j(t) + \tilde{u}_j(t), \quad \lambda \in (0,1]$$
 
-Lower λ = faster forgetting of past performance.
+where $\tilde{u}_j(t)$ is the virtual payoff predictor $j$ would have earned under realised attendance (attend and win: +1; attend and lose: -1; stay home: 0). Lower λ = faster forgetting of past performance.
 
 Both modes use the same predictor bank, same action rule (hard argmax), and same repeated-game engine. The only difference is whether old predictor performance is exponentially forgotten.
 
@@ -168,8 +174,8 @@ Both modes use the same predictor bank, same action rule (hard argmax), and same
 
 ```bash
 python -m src.experiments.run_repeated_baselines --n_rounds 200 --output_dir outputs/baselines
-python -m src.experiments.run_inductive --mode non_recency --n_rounds 200 --output_dir outputs/inductive
-python -m src.experiments.run_inductive --mode recency --lambda_decay 0.95 --n_rounds 200
+python -m src.experiments.run_inductive --mode recency --lambda_decay 0.95 --predictors_per_agent 6 --n_rounds 200
+python -m src.experiments.run_inductive --mode non_recency --predictors_per_agent 6 --n_rounds 200
 python -m src.experiments.run_heterogeneous --mode mix --p_inductive 0.8 --p_random 0.2 --n_rounds 200
 python -m src.experiments.run_heterogeneous --mode producer_speculator --n_producers 50 --n_rounds 200
 ```

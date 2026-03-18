@@ -103,7 +103,7 @@ class TestInductivePredictorAgentUpdates:
     """Tests for score update mechanics."""
 
     def test_updates_all_scores_non_recency(self) -> None:
-        """All predictor scores should be updated after each round."""
+        """All predictor scores should be updated after each round (virtual payoff)."""
         predictors = [("low", p_low), ("high", p_high)]
         agent = InductivePredictorAgent(
             predictors=predictors,
@@ -116,11 +116,12 @@ class TestInductivePredictorAgentUpdates:
         agent.choose_action(ctx, rng)
         agent.update(ctx, action=1, realised_attendance=62, payoff=-1)
 
-        assert agent.scores[0] == pytest.approx(-7.0)
-        assert agent.scores[1] == pytest.approx(-8.0)
+        # p_low predicts 55 -> attend; A=62 > L -> -1. p_high predicts 70 -> stay home -> 0.
+        assert agent.scores[0] == pytest.approx(-1.0)
+        assert agent.scores[1] == pytest.approx(0.0)
 
     def test_updates_all_scores_recency(self) -> None:
-        """Recency updater should decay then subtract error."""
+        """Recency updater should decay then add virtual payoff."""
         predictors = [("low", p_low), ("high", p_high)]
         agent = InductivePredictorAgent(
             predictors=predictors,
@@ -134,8 +135,9 @@ class TestInductivePredictorAgentUpdates:
         agent.choose_action(ctx, rng)
         agent.update(ctx, action=1, realised_attendance=62, payoff=-1)
 
-        assert agent.scores[0] == pytest.approx(0.5 * (-4.0) - 7.0)
-        assert agent.scores[1] == pytest.approx(0.5 * (-6.0) - 8.0)
+        # p_low: attend, A>L -> -1. p_high: stay home -> 0.
+        assert agent.scores[0] == pytest.approx(0.5 * (-4.0) + (-1.0))
+        assert agent.scores[1] == pytest.approx(0.5 * (-6.0) + 0.0)
 
 
 class TestInductivePredictorAgentReset:

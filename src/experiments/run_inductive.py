@@ -1,9 +1,9 @@
 """
 Run repeated-game experiments with inductive strategies (non_recency, recency).
 
-Two modes based on memory treatment:
-  - non_recency: s_j(t+1) = s_j(t) - |forecast_j(t) - A_t|
-  - recency:     s_j(t+1) = lambda * s_j(t) - |forecast_j(t) - A_t|
+Virtual-payoff scoring under weak-threshold convention:
+  - non_recency: s_j(t+1) = s_j(t) + \tilde u_j(t)
+  - recency:     s_j(t+1) = lambda * s_j(t) + \tilde u_j(t)
 
 Both use the same predictor bank, same action rule (hard argmax), same
 repeated-game engine. The only difference is whether old predictor performance
@@ -40,13 +40,13 @@ from src.game.repeated_game import RepeatedMinorityGame
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Inductive repeated game: non_recency vs recency",
+        description="Inductive repeated game with virtual-payoff scoring",
     )
     parser.add_argument(
         "--mode",
         choices=["non_recency", "recency"],
-        required=True,
-        help="Score update rule: cumulative (non_recency) or exponentially decayed (recency)",
+        default="recency",
+        help="Score update mode (default: recency)",
     )
     parser.add_argument("--n_players", type=int, default=101)
     parser.add_argument("--threshold", type=int, default=60)
@@ -55,7 +55,7 @@ def main() -> None:
         "--lambda_decay",
         type=float,
         default=0.95,
-        help="Score decay factor for recency mode (ignored for non_recency)",
+        help="Virtual-payoff score decay for recency mode (ignored for non_recency)",
     )
     parser.add_argument("--predictors_per_agent", type=int, default=6)
     parser.add_argument("--seed", type=int, default=42)

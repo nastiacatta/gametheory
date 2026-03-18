@@ -64,9 +64,11 @@ def build_homogeneous_non_recency(
     predictor_banks: Optional[Sequence[PredictorBank]] = None,
 ) -> List[BaseAgent]:
     """
-    All agents use cumulative (non-recency) score updating with hard argmax.
+    All agents use non-recency virtual-payoff score updating with hard argmax.
 
-    Score update: s_j(t+1) = s_j(t) - |forecast_j(t) - A_t|
+    Score update:
+        s_j(t+1) = s_j(t) + \tilde u_j(t)
+    where \tilde u_j(t) is the virtual payoff implied by predictor j.
 
     If predictor_banks is provided, use those instead of sampling new banks.
     """
@@ -102,9 +104,11 @@ def build_homogeneous_recency(
     predictor_banks: Optional[Sequence[PredictorBank]] = None,
 ) -> List[BaseAgent]:
     """
-    All agents use recency-weighted score updating with hard argmax.
+    All agents use recency-weighted virtual-payoff score updating with hard argmax.
 
-    Score update: s_j(t+1) = lambda * s_j(t) - |forecast_j(t) - A_t|
+    Score update:
+        s_j(t+1) = lambda * s_j(t) + \tilde u_j(t)
+    where \tilde u_j(t) is the virtual payoff implied by predictor j.
 
     If predictor_banks is provided, use those instead of sampling new banks.
     """
@@ -151,7 +155,7 @@ def build_heterogeneous(
     seed: int = 42,
 ) -> List[BaseAgent]:
     """
-    Mix of inductive (non_recency or recency) and random agents.
+    Mix of inductive (non_recency or recency virtual-payoff) and random agents.
 
     Shares must lie in [0, 1] and sum to 1.0.
     If lambda_decay is None, use non_recency; else use recency.
@@ -203,7 +207,7 @@ def build_producer_speculator(
     """
     Producers (non-adaptive noisy-threshold) + speculators (inductive agents).
 
-    If lambda_decay is None, speculators use non_recency; else recency.
+    If lambda_decay is None, speculators use non_recency virtual-payoff; else recency.
     producer_base_prediction defaults to threshold if not specified.
     """
     _max_k = len(default_predictor_library())

@@ -180,13 +180,15 @@ def run_inductive(args: argparse.Namespace) -> None:
             predictors_per_agent=args.predictors_per_agent,
             seed=config.seed,
         )
-    else:
+    elif args.mode == "recency":
         agents = build_homogeneous_recency(
             config.n_players,
             lambda_decay=args.lambda_decay,
             predictors_per_agent=args.predictors_per_agent,
             seed=config.seed,
         )
+    else:
+        raise ValueError(f"Unknown inductive mode: {args.mode}")
 
     game = RepeatedMinorityGame(
         n_players=config.n_players,
@@ -209,31 +211,31 @@ def run_inductive(args: argparse.Namespace) -> None:
         predictor_histories=use_histories,
     )
 
-    out = Path(args.output_dir)
-    out.mkdir(parents=True, exist_ok=True)
+    output_dir = Path(args.output_dir) / args.mode
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    result.rounds_dataframe().to_csv(out / "rounds.csv", index=False)
+    result.rounds_dataframe().to_csv(output_dir / "rounds.csv", index=False)
 
-    player_df = result.players_dataframe().copy()
-    player_df["agent_type"] = [type(a).__name__ for a in agents]
-    player_df.to_csv(out / "players.csv", index=False)
+    players_df = result.players_dataframe().copy()
+    players_df["agent_type"] = [type(a).__name__ for a in agents]
+    players_df.to_csv(output_dir / "players.csv", index=False)
 
-    pd.DataFrame([metrics]).to_csv(out / "summary.csv", index=False)
+    pd.DataFrame([metrics]).to_csv(output_dir / "summary.csv", index=False)
 
-    plot_attendance_over_time(result.attendance_history, config.threshold, out / "attendance.png")
-    plot_attendance_deviation_over_time(result.attendance_history, config.threshold, out / "attendance_deviation.png")
-    plot_cumulative_average_attendance(result.attendance_history, config.threshold, out / "cum_avg_attendance.png")
+    plot_attendance_over_time(result.attendance_history, config.threshold, output_dir / "attendance.png")
+    plot_attendance_deviation_over_time(result.attendance_history, config.threshold, output_dir / "attendance_deviation.png")
+    plot_cumulative_average_attendance(result.attendance_history, config.threshold, output_dir / "cum_avg_attendance.png")
     plot_rolling_variance_from_threshold(
         result.attendance_history, config.threshold,
         window=max(10, config.n_rounds // 10),
-        output_path=out / "rolling_variance.png"
+        output_path=output_dir / "rolling_variance.png"
     )
-    plot_threshold_distance_histogram(result.attendance_history, config.threshold, out / "attendance_deviation_hist.png")
-    plot_attendance_histogram(result.attendance_history, config.threshold, out / "attendance_hist.png")
-    plot_payoff_histogram(result.cumulative_payoffs, out / "payoff_hist.png")
-    plot_ranked_final_payoffs(result.cumulative_payoffs, out / "ranked_final_payoffs.png")
+    plot_threshold_distance_histogram(result.attendance_history, config.threshold, output_dir / "attendance_deviation_hist.png")
+    plot_attendance_histogram(result.attendance_history, config.threshold, output_dir / "attendance_hist.png")
+    plot_payoff_histogram(result.cumulative_payoffs, output_dir / "payoff_hist.png")
+    plot_ranked_final_payoffs(result.cumulative_payoffs, output_dir / "ranked_final_payoffs.png")
 
-    print(f"Inductive ({args.mode}): {out.resolve()}")
+    print(f"Inductive ({args.mode}): {output_dir.resolve()}")
     for k, v in metrics.items():
         print(f"  {k}={v}")
 
@@ -413,13 +415,13 @@ def build_parser() -> argparse.ArgumentParser:
     # === inductive ===
     inductive_parser = subparsers.add_parser(
         "inductive",
-        help="Repeated game with inductive agents (non_recency, recency)",
+        help="Repeated game with inductive predictor agents",
     )
     inductive_parser.add_argument(
         "--mode",
         choices=["non_recency", "recency"],
-        required=True,
-        help="Score update rule: cumulative (non_recency) or exponentially decayed (recency)",
+        default="recency",
+        help="Score update mode (default: recency)",
     )
     inductive_parser.add_argument("--n_players", type=int, default=101)
     inductive_parser.add_argument("--threshold", type=int, default=60)
@@ -431,7 +433,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--lambda_decay",
         type=float,
         default=0.95,
-        help="Score decay factor for recency mode (ignored for non_recency)",
+        help="Score decay for recency mode (ignored for non_recency)",
     )
 
     # === heterogeneous ===

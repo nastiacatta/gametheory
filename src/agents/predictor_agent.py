@@ -1,15 +1,13 @@
 """
 Unified inductive predictor agent with pluggable score updating.
 
-Each agent holds a bank of attendance predictors and a cumulative score
-for each. Every round it uses the predictor with the highest score to
-forecast attendance, then attends iff the forecast <= threshold.
+Each agent holds a bank of attendance predictors and a score for each.
+Every round it uses the predictor with the highest score to forecast
+attendance, then attends iff the forecast <= threshold.
 
 After the realised attendance is observed, all predictor scores are updated
-via the plugged-in ScoreUpdater (cumulative or recency-weighted).
-
-This single class replaces the previous BestPredictorAgent and
-RecencyWeightedPredictorAgent by parameterising the score-update rule.
+via the plugged-in ScoreUpdater using virtual payoff under the weak-threshold
+El Farol convention.
 """
 
 from __future__ import annotations
@@ -26,7 +24,6 @@ from src.agents.score_updaters import ScoreUpdater, CumulativeScoreUpdater
 class InductivePredictorAgent(BaseAgent):
     """
     Unified inductive agent: hard-argmax selection, pluggable score update.
-
     Selection: highest-scoring predictor wins (ties broken randomly).
     Score update: delegated to a ScoreUpdater instance.
     """
@@ -44,7 +41,6 @@ class InductivePredictorAgent(BaseAgent):
         self.predictor_names: List[str] = [name for name, _ in predictors]
         self.predictors: List[Predictor] = [fn for _, fn in predictors]
         self.score_updater: ScoreUpdater = score_updater
-
         self.scores: List[float] = [0.0] * len(self.predictors)
         self._last_predictions: List[float] = [0.0] * len(self.predictors)
         self._active_idx: int = 0
@@ -64,7 +60,6 @@ class InductivePredictorAgent(BaseAgent):
 
         self._active_idx = best_idx
         self.predictor_history.append(best_idx)
-
         return int(predictions[best_idx] <= context.threshold)
 
     def update(
@@ -74,12 +69,14 @@ class InductivePredictorAgent(BaseAgent):
         realised_attendance: int,
         payoff: int,
     ) -> None:
-        _ = context, action, payoff
+        _ = action, payoff
+
         for j, pred in enumerate(self._last_predictions):
             self.scores[j] = self.score_updater.update(
                 old_score=self.scores[j],
                 prediction=pred,
                 realised_attendance=realised_attendance,
+                threshold=context.threshold,
             )
 
     def reset(self) -> None:
