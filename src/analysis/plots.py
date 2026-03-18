@@ -315,24 +315,30 @@ def plot_predictor_share_over_time(
     n_agents = len(predictor_histories)
     if n_agents == 0:
         return
+
+    lengths = {len(h) for h in predictor_histories}
+    if len(lengths) != 1:
+        raise ValueError("All predictor histories must have the same length.")
+
     T = len(predictor_histories[0])
     n_predictors = len(predictor_names)
-    shares = np.zeros((T, n_predictors))
+    rounds = np.arange(1, T + 1)
+
+    shares = np.zeros((T, n_predictors), dtype=float)
     for t in range(T):
         for i in range(n_agents):
             j = predictor_histories[i][t]
-            shares[t, j] += 1
+            shares[t, j] += 1.0
     shares /= n_agents
-
-    rounds = np.arange(1, T + 1)
 
     fig, ax = plt.subplots(figsize=(10, 5))
     for j in range(n_predictors):
         ax.plot(rounds, shares[:, j], label=predictor_names[j])
+
     ax.set_xlabel("Round")
     ax.set_ylabel("Share of agents")
     ax.set_title("Predictor usage over time")
-    ax.set_xlim(1, T)
+    ax.set_ylim(0.0, 1.0)
     ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left")
     fig.tight_layout()
 

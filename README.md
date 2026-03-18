@@ -3,10 +3,10 @@
 Simulation code for the **El Farol threshold game** with minority-game-inspired inductive extensions. This repository implements a threshold-based coordination game where:
 
 1. **Actions are binary (0/1):** Each player chooses to **stay home** (0) or **go to the bar** (1).
-2. **Payoff rule is threshold-based with the weak convention:** Attendees receive +1 if total attendance \(A \le L\), and −1 if \(A > L\). Staying home always yields 0.
-3. **Arthur-inspired but not canonical MG:** This implementation draws on Arthur's (1994) El Farol problem and uses predictor-based inductive reasoning. It is **not** the canonical Challet–Zhang Minority Game, which uses symmetric actions \(\{-1, +1\}\), binary history strings of length \(M\), lookup-table strategies, and the control parameter \(\alpha = 2^M / N\).
+2. **Payoff rule is threshold-based with the weak convention:** Attendees receive +1 if total attendance $A \le L$, and −1 if $A > L$. Staying home always yields 0.
+3. **Arthur-inspired but not canonical MG:** This implementation draws on Arthur's (1994) El Farol problem and uses predictor-based inductive reasoning. It is **not** the canonical Challet–Zhang Minority Game, which uses symmetric actions $\{-1, +1\}$, binary history strings of length $M$, lookup-table strategies, and the control parameter $\alpha = 2^M / N$.
 
-Configurable parameters: player count \(n\) (default 101), capacity threshold \(L\) (default 60), and horizon \(m\) (default 200 rounds). Designed for coursework; emphasis on reproducibility and theoretical accuracy.
+Configurable parameters: player count $n$ (default 101), capacity threshold $L$ (default 60), and horizon $m$ (default 200 rounds). Designed for coursework; emphasis on reproducibility and theoretical accuracy.
 
 See `docs/game_definition.md` for the full mathematical definition and distinction from the canonical Minority Game.
 
@@ -53,7 +53,7 @@ python -m src.main static [--n_players 101] [--threshold 60] [--seed 42]
 python -m src.main static-sweep --n_players 101 --threshold 60 --n_samples 10000 --grid_size 201 --seed 42
 ```
 
-This sweeps attendance probability \(p \in [0, 1]\) and outputs:
+This sweeps attendance probability $p \in [0, 1]$ and outputs:
 - `static_probability_sweep.csv`: mean attendance, payoff, overcrowding rate for each p
 - `static_payoff_vs_p.png`: mean payoff per player vs p
 - `static_attendance_vs_p.png`: mean attendance vs p
@@ -119,15 +119,15 @@ Outputs (CSVs and figures) are written to `--output_dir`. The repeated runner wr
 This implementation uses the **weak threshold** convention:
 
 - Each player chooses **attend** (1) or **stay home** (0).
-- Let \(A = \sum_i a_i\) be total attendance and \(L\) be the capacity threshold.
+- Let $A = \sum_i a_i$ be total attendance and $L$ be the capacity threshold.
 - Payoffs:
-  - If \(A \le L\): attendees receive \(+1\).
-  - If \(A > L\): attendees receive \(-1\).
-  - Stay home: \(0\) (neutral).
+  - If $A \le L$: attendees receive $+1$.
+  - If $A > L$: attendees receive $-1$.
+  - Stay home: $0$ (neutral).
 
-**Pure-strategy Nash equilibria:** Exactly the profiles with \(A = L\). There are \(\binom{n}{L}\) such equilibria.
+**Pure-strategy Nash equilibria:** Exactly the profiles with $A = L$. There are $\binom{n}{L}$ such equilibria.
 
-**Symmetric mixed equilibrium:** The equilibrium probability \(p^*\) satisfies \(\Pr(X \le L-1) = 1/2\) where \(X \sim \mathrm{Bin}(n-1, p^*)\).
+**Symmetric mixed equilibrium:** The equilibrium probability $p^*$ satisfies $\Pr(X \le L-1) = 1/2$ where $X \sim \mathrm{Bin}(n-1, p^*)$.
 
 See `docs/game_definition.md` for full definitions, proofs, and theoretical analysis.
 
@@ -160,10 +160,12 @@ These are **Arthur-inspired inductive heuristics**, not a reconstruction of any 
 ### Score Update Rules
 
 **Cumulative scoring (Best, Softmax):**
-\[s_{ij}(t+1) = s_{ij}(t) - |\hat{A}_{ij}(t) - A_t|\]
+
+$$s_{ij}(t+1) = s_{ij}(t) - |\hat{A}_{ij}(t) - A_t|$$
 
 **Recency-weighted scoring (Recency, Turnover):**
-\[s_{ij}(t+1) = \lambda \cdot s_{ij}(t) - |\hat{A}_{ij}(t) - A_t|, \quad \lambda \in (0,1]\]
+
+$$s_{ij}(t+1) = \lambda \cdot s_{ij}(t) - |\hat{A}_{ij}(t) - A_t|, \quad \lambda \in (0,1]$$
 
 Lower λ = faster forgetting of past performance.
 
@@ -183,27 +185,27 @@ Each experiment writes `rounds.csv`, `players.csv`, `summary.csv` plus figures i
 ## Analysis Metrics
 
 **Threshold-centred metrics:**
-- Mean squared deviation from threshold: \(\sigma_L^2 = \frac{1}{T} \sum_t (A_t - L)^2\)
-- MAD from threshold: \(\mathrm{MAD}_L = \frac{1}{T} \sum_t |A_t - L|\)
-- Overcrowding rate: fraction of rounds with \(A_t > L\)
+- Mean squared deviation from threshold: $\sigma_L^2 = \frac{1}{T} \sum_t (A_t - L)^2$
+- MAD from threshold: $\mathrm{MAD}_L = \frac{1}{T} \sum_t |A_t - L|$
+- Overcrowding rate: fraction of rounds with $A_t > L$
 
 **Payoff metrics:**
 - Mean cumulative payoff
 - Payoff dispersion (standard deviation across agents)
 
-**Note:** When volatility is reported, it refers to threshold-deviation volatility (\(\sigma_L^2\)), **not** canonical Minority Game volatility.
+**Note:** When volatility is reported, it refers to threshold-deviation volatility ($\sigma_L^2$), **not** canonical Minority Game volatility.
 
 ## Relation to the Minority Game
 
 This implementation is an **El Farol threshold game** with **minority-game-inspired** inductive adaptation. It is **not** the canonical Challet–Zhang Minority Game, which uses:
 
-- Symmetric action space \(\{-1, +1\}\)
-- Binary history of length \(M\)
+- Symmetric action space $\{-1, +1\}$
+- Binary history of length $M$
 - Strategy tables mapping histories to actions
-- Control parameter \(\alpha = 2^M / N\)
-- Phase transition at \(\alpha_c \approx 0.34\)
+- Control parameter $\alpha = 2^M / N$
+- Phase transition at $\alpha_c \approx 0.34$
 
-This repository does not implement standard MG strategy spaces, the \(\alpha\) parameter structure, or phase transition analysis. See `docs/game_definition.md` Section 5 for detailed comparison.
+This repository does not implement standard MG strategy spaces, the $\alpha$ parameter structure, or phase transition analysis. See `docs/game_definition.md` Section 5 for detailed comparison.
 
 ## Tests
 
@@ -213,9 +215,9 @@ pytest
 pytest -v
 ```
 
-Tests currently cover payoff logic, configuration, population builders,
-the static game, and the repeated game, with metrics boundary tests added
-for the threshold convention.
+Tests cover configuration, payoff logic, population builders, the static game,
+repeated game, predictors, inductive agents (including threshold and advanced variants),
+metrics, equilibria calculations, and static probability sweeps.
 
 ## Project Layout
 
@@ -257,7 +259,15 @@ for the threshold convention.
 │   ├── test_static_game.py
 │   ├── test_repeated_game.py
 │   ├── test_predictors.py
-│   └── test_populations.py
+│   ├── test_populations.py
+│   ├── test_metrics.py
+│   ├── test_inductive_agents.py
+│   ├── test_equilibria.py
+│   ├── test_threshold_agents.py
+│   ├── test_advanced_agents.py
+│   ├── test_fixed_predictor_agent.py
+│   ├── test_math_consistency.py
+│   └── test_static_probability_sweep.py
 ├── docs/
 │   ├── game_definition.md      # Full mathematical definition
 │   ├── report_outline.md       # Suggested report structure

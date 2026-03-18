@@ -1,2 +1,0 @@
-n_rounds,mean_attendance,std_attendance,variance_from_threshold,mad_from_threshold,overcrowding_rate,mean_cumulative_payoff,std_cumulative_payoff,min_cumulative_payoff,max_cumulative_payoff
-200.0,78.625,3.5063335551541583,359.185,18.625,1.0,-155.69306930693068,44.967258181938746,-200.0,-96.0
