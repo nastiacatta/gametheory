@@ -6,6 +6,7 @@ from src.analysis.metrics import (
     std_attendance,
     variance_from_threshold,
 )
+from src.game.payoff import build_stage_outcome
 
 
 def test_mean_attendance() -> None:
@@ -38,3 +39,31 @@ def test_overcrowding_rate_all_above() -> None:
 
 def test_overcrowding_rate_uses_strict_threshold() -> None:
     assert overcrowding_rate([60, 61, 59, 60], 60) == 0.25
+
+
+# -----------------------------------------------------------------------------
+# Boundary tests for threshold consistency between StageOutcome and metrics
+# -----------------------------------------------------------------------------
+
+
+def test_stage_outcome_not_overcrowded_at_threshold() -> None:
+    """StageOutcome.overcrowded is False when attendance == threshold."""
+    actions = [1, 1, 1, 0]
+    out = build_stage_outcome(actions, threshold=3)
+    assert out.attendance == 3
+    assert out.overcrowded is False
+
+
+def test_stage_outcome_overcrowded_above_threshold() -> None:
+    """StageOutcome.overcrowded is True when attendance > threshold."""
+    actions = [1, 1, 1, 1]
+    out = build_stage_outcome(actions, threshold=3)
+    assert out.attendance == 4
+    assert out.overcrowded is True
+
+
+def test_overcrowding_rate_uses_strictly_greater_than_threshold() -> None:
+    """overcrowding_rate counts only rounds with A_t > L (not A_t >= L)."""
+    history = [2, 3, 4, 3]
+    rate = overcrowding_rate(history, threshold=3)
+    assert rate == 0.25

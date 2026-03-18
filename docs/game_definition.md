@@ -83,11 +83,16 @@ u_i(\mathbf{a}) =
 
 Consider the symmetric mixed strategy where each player independently attends with probability \(p \in (0, 1)\).
 
-**Proposition.** The symmetric mixed-strategy Nash equilibrium probability \(p^*\) is the unique solution to
+**Proposition.** For interior thresholds \(1 \le L \le n-1\), the symmetric
+mixed-strategy Nash equilibrium probability \(p^* \in (0,1)\) is the unique
+solution to
 
 \[
 \Pr(X \le L - 1) = \frac{1}{2}, \qquad X \sim \mathrm{Bin}(n - 1, p^*).
 \]
+
+For boundary thresholds \(L=0\) or \(L=n\), this interior mixed-equilibrium
+condition does not apply.
 
 *Proof sketch.*
 
@@ -256,6 +261,9 @@ The primary analysis metrics are centred on the threshold \(L\), reflecting the 
 \[
 \mathrm{OvercrowdingRate} = \frac{1}{T} \sum_{t=1}^{T} \mathbf{1}[A_t > L]
 \]
+
+Rounds with \(A_t = L\) are feasible under the weak-threshold convention and are
+not counted as overcrowded.
 
 ### 6.2 Payoff Metrics
 

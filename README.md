@@ -213,7 +213,9 @@ pytest
 pytest -v
 ```
 
-Tests cover payoff logic, configs, population builders, experiment runners, the static game, and the repeated game.
+Tests currently cover payoff logic, configuration, population builders,
+the static game, and the repeated game, with metrics boundary tests added
+for the threshold convention.
 
 ## Project Layout
 

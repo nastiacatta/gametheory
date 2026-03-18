@@ -40,6 +40,15 @@ def payoffs_for_actions(actions: Iterable[int], threshold: int) -> List[int]:
     ]
 
 
+def is_overcrowded(attendance: int, threshold: int) -> bool:
+    """Canonical overcrowding test under the weak-threshold convention.
+
+    Returns True iff attendance > threshold (strict inequality).
+    This is the single source of truth for the overcrowding convention.
+    """
+    return attendance > threshold
+
+
 @dataclass(frozen=True)
 class StageOutcome:
     actions: List[int]
@@ -56,5 +65,5 @@ def build_stage_outcome(actions: Iterable[int], threshold: int) -> StageOutcome:
         actions=action_list,
         attendance=attendance,
         payoffs=payoffs,
-        overcrowded=attendance > threshold,
+        overcrowded=is_overcrowded(attendance, threshold),
     )
