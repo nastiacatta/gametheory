@@ -47,6 +47,18 @@ All experiments can be run through the unified CLI with subcommands:
 python -m src.main static [--n_players 101] [--threshold 60] [--seed 42]
 ```
 
+**Static probability sweep (p from 0 to 1):**
+
+```bash
+python -m src.main static-sweep --n_players 101 --threshold 60 --n_samples 10000 --grid_size 201 --seed 42
+```
+
+This sweeps attendance probability \(p \in [0, 1]\) and outputs:
+- `static_probability_sweep.csv`: mean attendance, payoff, overcrowding rate for each p
+- `static_payoff_vs_p.png`: mean payoff per player vs p
+- `static_attendance_vs_p.png`: mean attendance vs p
+- `static_overcrowding_vs_p.png`: overcrowding rate vs p
+
 **Repeated game with basic populations:**
 
 ```bash

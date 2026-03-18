@@ -1,5 +1,5 @@
 """
-Plotting utilities for repeated-game analysis.
+Plotting utilities for static and repeated-game analysis.
 """
 
 from __future__ import annotations
@@ -10,6 +10,153 @@ from typing import List, Optional
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+
+# =============================================================================
+# Static probability sweep plots
+# =============================================================================
+
+
+def plot_static_payoff_vs_p(
+    df: pd.DataFrame,
+    threshold: int,
+    n_players: int,
+    output_path: Optional[Path] = None,
+) -> None:
+    """
+    Plot mean payoff per player against attendance probability p.
+    
+    Args:
+        df: DataFrame from run_probability_sweep with columns 'p' and
+            'mean_payoff_per_player'.
+        threshold: Capacity threshold L.
+        n_players: Number of players.
+        output_path: If provided, save figure to this path.
+    """
+    if df.empty or "p" not in df.columns:
+        return
+    
+    p_capacity = threshold / n_players
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(df["p"], df["mean_payoff_per_player"], linewidth=2, color="steelblue")
+    ax.axhline(0, linestyle="-", color="black", linewidth=0.8, alpha=0.5)
+    ax.axvline(
+        p_capacity,
+        linestyle="--",
+        color="gray",
+        linewidth=1.5,
+        label=f"Capacity benchmark (p = L/n = {p_capacity:.3f})",
+    )
+    
+    ax.set_xlabel("Attendance probability p", fontsize=12)
+    ax.set_ylabel("Mean payoff per player", fontsize=12)
+    ax.set_title(f"Static Game: Mean Payoff vs Attendance Probability (n={n_players}, L={threshold})")
+    ax.set_xlim(0, 1)
+    ax.legend(loc="upper right")
+    ax.grid(True, alpha=0.3)
+    
+    fig.tight_layout()
+    if output_path:
+        fig.savefig(output_path, dpi=200)
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_static_attendance_vs_p(
+    df: pd.DataFrame,
+    threshold: int,
+    n_players: int,
+    output_path: Optional[Path] = None,
+) -> None:
+    """
+    Plot mean attendance against attendance probability p.
+    
+    Args:
+        df: DataFrame from run_probability_sweep with columns 'p' and
+            'mean_attendance'.
+        threshold: Capacity threshold L.
+        n_players: Number of players.
+        output_path: If provided, save figure to this path.
+    """
+    if df.empty or "p" not in df.columns:
+        return
+    
+    p_capacity = threshold / n_players
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    ax.plot(df["p"], df["mean_attendance"], linewidth=2, color="steelblue", label="Mean attendance")
+    ax.plot(
+        df["p"],
+        df["p"] * n_players,
+        linestyle=":",
+        color="gray",
+        linewidth=1.5,
+        alpha=0.7,
+        label=r"Theoretical $E[A] = np$",
+    )
+    
+    ax.axhline(threshold, linestyle="--", color="red", linewidth=1.5, label=f"Threshold L = {threshold}")
+    ax.axvline(p_capacity, linestyle="--", color="gray", linewidth=1.0, alpha=0.5)
+    
+    ax.set_xlabel("Attendance probability p", fontsize=12)
+    ax.set_ylabel("Mean attendance", fontsize=12)
+    ax.set_title(f"Static Game: Mean Attendance vs Attendance Probability (n={n_players}, L={threshold})")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, n_players)
+    ax.legend(loc="upper left")
+    ax.grid(True, alpha=0.3)
+    
+    fig.tight_layout()
+    if output_path:
+        fig.savefig(output_path, dpi=200)
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def plot_static_overcrowding_vs_p(
+    df: pd.DataFrame,
+    threshold: int,
+    output_path: Optional[Path] = None,
+) -> None:
+    """
+    Plot overcrowding rate against attendance probability p.
+    
+    Args:
+        df: DataFrame from run_probability_sweep with columns 'p' and
+            'overcrowding_rate'.
+        threshold: Capacity threshold L.
+        output_path: If provided, save figure to this path.
+    """
+    if df.empty or "p" not in df.columns:
+        return
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(df["p"], df["overcrowding_rate"], linewidth=2, color="steelblue")
+    ax.axhline(0.5, linestyle="--", color="gray", linewidth=1.0, alpha=0.5, label="50% overcrowding")
+    
+    ax.set_xlabel("Attendance probability p", fontsize=12)
+    ax.set_ylabel("Overcrowding rate (fraction of games with A > L)", fontsize=12)
+    ax.set_title(f"Static Game: Overcrowding Rate vs Attendance Probability (L={threshold})")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.legend(loc="upper left")
+    ax.grid(True, alpha=0.3)
+    
+    fig.tight_layout()
+    if output_path:
+        fig.savefig(output_path, dpi=200)
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+# =============================================================================
+# Repeated game plots
+# =============================================================================
 
 
 def plot_attendance_over_time(

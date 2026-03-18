@@ -321,6 +321,40 @@ def run_sweep(args: argparse.Namespace) -> None:
     sweep_main()
 
 
+def run_static_sweep(args: argparse.Namespace) -> None:
+    """Run static probability sweep experiment."""
+    from src.experiments.run_static_probability_sweep import run_probability_sweep
+    
+    print(f"Running static probability sweep...")
+    print(f"  n_players={args.n_players}, threshold={args.threshold}")
+    print(f"  n_samples={args.n_samples}, grid_size={args.grid_size}")
+    print(f"  seed={args.seed}")
+    
+    df = run_probability_sweep(
+        n_players=args.n_players,
+        threshold=args.threshold,
+        n_samples=args.n_samples,
+        grid_size=args.grid_size,
+        seed=args.seed,
+        output_dir=args.output_dir,
+    )
+    
+    out_path = Path(args.output_dir).resolve()
+    print(f"\nOutputs saved to: {out_path}")
+    print(f"  - static_probability_sweep.csv")
+    print(f"  - static_payoff_vs_p.png")
+    print(f"  - static_attendance_vs_p.png")
+    print(f"  - static_overcrowding_vs_p.png")
+    
+    p_capacity = args.threshold / args.n_players
+    idx = (df["p"] - p_capacity).abs().idxmin()
+    row = df.iloc[idx]
+    print(f"\nAt capacity benchmark p = {p_capacity:.4f}:")
+    print(f"  mean_attendance = {row['mean_attendance']:.2f}")
+    print(f"  mean_payoff_per_player = {row['mean_payoff_per_player']:.4f}")
+    print(f"  overcrowding_rate = {row['overcrowding_rate']:.4f}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build CLI argument parser with all subcommands."""
     parser = argparse.ArgumentParser(
@@ -390,6 +424,18 @@ def build_parser() -> argparse.ArgumentParser:
     sweep_parser.add_argument("--n_seeds", type=int, default=50)
     sweep_parser.add_argument("--output_dir", type=str, default="outputs/sweep")
 
+    # === static-sweep ===
+    static_sweep_parser = subparsers.add_parser(
+        "static-sweep",
+        help="Static probability sweep over p in [0, 1]"
+    )
+    static_sweep_parser.add_argument("--n_players", type=int, default=101)
+    static_sweep_parser.add_argument("--threshold", type=int, default=60)
+    static_sweep_parser.add_argument("--n_samples", type=int, default=10_000, help="Monte Carlo samples per p value")
+    static_sweep_parser.add_argument("--grid_size", type=int, default=201, help="Number of p values in [0, 1]")
+    static_sweep_parser.add_argument("--seed", type=int, default=42)
+    static_sweep_parser.add_argument("--output_dir", type=str, default="outputs/static_sweep")
+
     return parser
 
 
@@ -407,6 +453,8 @@ def main() -> None:
         run_heterogeneous(args)
     elif args.command == "sweep":
         run_sweep(args)
+    elif args.command == "static-sweep":
+        run_static_sweep(args)
     else:
         raise ValueError(f"Unknown command: {args.command}")
 
