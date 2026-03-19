@@ -7,7 +7,7 @@ This document provides the formal game-theoretic definition of the El Farol thre
 This implementation makes the following explicit design choices, which are consistent throughout the codebase:
 
 1. **Binary actions $\{0, 1\}$:** Players choose to stay home (0) or attend (1). This differs from the canonical MG's symmetric $\{-1, +1\}$ action space.
-2. **Weak threshold payoff:** Attendees win (+1) when $A \le L$, not under strict inequality $A < L$.
+2. **Strict threshold payoff:** Attendees win (+1) when $A < L$, and lose (-1) when $A \ge L$.
 3. **Fixed stay-home payoff:** The payoff for staying home is always $0$, serving as a neutral outside option. This is a modelling assumption; alternative formulations might assign a non-zero or state-dependent payoff to the outside option.
 4. **Predictor-based induction:** Agents use Arthur-inspired forecasting heuristics, not the canonical MG's lookup-table strategy space.
 
@@ -37,25 +37,25 @@ $$
 A(\mathbf{a}) = \sum_{i=1}^{n} a_i
 $$
 
-### 1.2 Payoff Function (Weak Threshold Convention)
+### 1.2 Payoff Function (Strict Threshold Convention)
 
-This implementation uses the **weak threshold** convention:
+This implementation uses the **strict threshold** convention:
 
 $$
 u_i(\mathbf{a}) =
 \begin{cases}
-+1 & \text{if } a_i = 1 \text{ and } A(\mathbf{a}) \le L, \\
--1 & \text{if } a_i = 1 \text{ and } A(\mathbf{a}) > L, \\
++1 & \text{if } a_i = 1 \text{ and } A(\mathbf{a}) < L, \\
+-1 & \text{if } a_i = 1 \text{ and } A(\mathbf{a}) \ge L, \\
 0 & \text{if } a_i = 0.
 \end{cases}
 $$
 
 **Interpretation:**
-- Attendees receive payoff $+1$ if at most $L$ people attend (capacity not exceeded).
-- Attendees receive payoff $-1$ when attendance exceeds capacity.
+- Attendees receive payoff $+1$ if fewer than $L$ people attend (strictly below capacity).
+- Attendees receive payoff $-1$ when attendance meets or exceeds capacity.
 - Staying home yields a neutral payoff of $0$.
 
-**Remark 1 (Weak vs. strict threshold).** Some formulations (including Arthur's original El Farol description) use a strict inequality ($A < L$) for the positive payoff. The choice affects equilibrium attendance by one unit. This repository uses the weak inequality ($A \le L$) throughout.
+**Remark 1 (Strict vs. weak threshold).** Some formulations use a weak inequality ($A \le L$) for the positive payoff. The choice affects equilibrium attendance by one unit. This repository uses the strict inequality ($A < L$) throughout.
 
 **Remark 2 (Fixed outside option).** The stay-home payoff is fixed at $u_i(0) = 0$ for all players in all states. This serves as a neutral outside option and simplifies the equilibrium analysis. Alternative models might specify a positive stay-home utility (e.g., enjoying a quiet evening) or a state-dependent outside option. The choice of $u_i(0) = 0$ is a modelling assumption that must be stated explicitly when comparing results across different formulations.
 
@@ -65,34 +65,38 @@ $$
 
 ### 2.1 Pure-Strategy Nash Equilibria
 
-**Proposition.** Under the weak threshold payoff, the pure-strategy Nash equilibria are exactly the action profiles $\mathbf{a}$ with aggregate attendance $A(\mathbf{a}) = L$.
+**Proposition.** Under the strict threshold payoff, the pure-strategy Nash equilibria are:
+- If $L = 0$: only the all-stay-home profile ($A = 0$).
+- If $L \ge 1$: exactly the action profiles $\mathbf{a}$ with aggregate attendance $A(\mathbf{a}) = L - 1$.
 
 *Proof sketch.*
 
-1. **$A < L$ is not stable:** Any player with $a_i = 0$ can deviate to $a_i = 1$. After deviation, $A' = A + 1 \le L$, so the deviator's payoff increases from $0$ to $+1$.
+1. **$A < L - 1$ is not stable (when $L \ge 1$):** Any player with $a_i = 0$ can deviate to $a_i = 1$. After deviation, $A' = A + 1 < L$, so the deviator's payoff increases from $0$ to $+1$.
 
-2. **$A > L$ is not stable:** Any player with $a_i = 1$ receives payoff $-1$ and can deviate to $a_i = 0$, obtaining payoff $0$.
+2. **$A \ge L$ is not stable:** Any player with $a_i = 1$ receives payoff $-1$ and can deviate to $a_i = 0$, obtaining payoff $0$.
 
-3. **$A = L$ is stable:**
-   - Every attendee receives $+1$. Deviating to stay home yields $0$, which is worse.
-   - Every non-attendee receives $0$. Deviating to attend gives $A' = L + 1 > L$, yielding payoff $-1$, which is worse.
+3. **$A = L - 1$ is stable (when $L \ge 1$):**
+   - Every attendee receives $+1$ (since $A = L - 1 < L$). Deviating to stay home yields $0$, which is worse.
+   - Every non-attendee receives $0$. Deviating to attend gives $A' = L \ge L$, yielding payoff $-1$, which is worse.
 
-**Corollary.** There are exactly $\binom{n}{L}$ pure-strategy Nash equilibria, corresponding to all ways of selecting $L$ players to attend.
+4. **$L = 0$ special case:** When $L = 0$, any attendance $A \ge 0$ means $A \ge L$, so all attendees lose. The only NE is all-stay-home.
+
+**Corollary.** There are exactly $\binom{n}{L-1}$ pure-strategy Nash equilibria for $L \ge 1$, corresponding to all ways of selecting $L - 1$ players to attend. For $L = 0$, there is exactly 1 NE (all stay home).
 
 ### 2.2 Symmetric Mixed-Strategy Nash Equilibrium
 
 Consider the symmetric mixed strategy where each player independently attends with probability $p \in (0, 1)$.
 
-**Proposition.** For interior thresholds $1 \le L \le n-1$, the symmetric
+**Proposition.** For interior thresholds $2 \le L \le n$, the symmetric
 mixed-strategy Nash equilibrium probability $p^* \in (0,1)$ is the unique
 solution to
 
 $$
-\Pr(X \le L - 1) = \frac{1}{2}, \qquad X \sim \mathrm{Bin}(n - 1, p^*).
+\Pr(X \le L - 2) = \frac{1}{2}, \qquad X \sim \mathrm{Bin}(n - 1, p^*).
 $$
 
-For boundary thresholds $L=0$ or $L=n$, this interior mixed-equilibrium
-condition does not apply.
+For boundary thresholds $L = 0$ or $L = 1$, this interior mixed-equilibrium
+condition does not apply (no interior solution exists).
 
 *Proof sketch.*
 
@@ -101,24 +105,24 @@ For player $i$, let $X = \sum_{j \ne i} a_j \sim \mathrm{Bin}(n - 1, p)$ denote 
 The expected payoff from attending is:
 
 $$
-\mathbb{E}[u_i(1)] = \Pr(X + 1 \le L) \cdot (+1) + \Pr(X + 1 > L) \cdot (-1)
+\mathbb{E}[u_i(1)] = \Pr(X + 1 < L) \cdot (+1) + \Pr(X + 1 \ge L) \cdot (-1)
 $$
 
 $$
-= \Pr(X \le L - 1) - \Pr(X \ge L)
+= \Pr(X \le L - 2) - \Pr(X \ge L - 1)
 $$
 
 $$
-= 2 \Pr(X \le L - 1) - 1.
+= 2 \Pr(X \le L - 2) - 1.
 $$
 
 For indifference between attending ($\mathbb{E}[u_i(1)] = 0$) and staying home ($u_i(0) = 0$):
 
 $$
-2 \Pr(X \le L - 1) - 1 = 0 \implies \Pr(X \le L - 1) = \frac{1}{2}.
+2 \Pr(X \le L - 2) - 1 = 0 \implies \Pr(X \le L - 2) = \frac{1}{2}.
 $$
 
-**Remark.** For the default parameters $n = 101$, $L = 60$, this gives $\Pr(X \le 59) = 1/2$ where $X \sim \mathrm{Bin}(100, p^*)$. The equilibrium probability $p^*$ can be computed numerically.
+**Remark.** For the default parameters $n = 101$, $L = 60$, this gives $\Pr(X \le 58) = 1/2$ where $X \sim \mathrm{Bin}(100, p^*)$. The equilibrium probability $p^*$ can be computed numerically.
 
 ---
 
@@ -182,7 +186,7 @@ Higher scores indicate better historical accuracy.
 
 $$
 j_i^*(t) = \arg\max_j \, s_{ij}(t), \qquad
-a_i(t) = \mathbf{1}[\hat{A}_{i j_i^*}(t) \le L].
+a_i(t) = \mathbf{1}[\hat{A}_{i j_i^*}(t) < L].
 $$
 
 Ties are broken randomly (uniform selection among equally-best predictors).
@@ -285,11 +289,10 @@ $$
 **Overcrowding rate:**
 
 $$
-\mathrm{OvercrowdingRate} = \frac{1}{T} \sum_{t=1}^{T} \mathbf{1}[A_t > L]
+\mathrm{OvercrowdingRate} = \frac{1}{T} \sum_{t=1}^{T} \mathbf{1}[A_t \ge L]
 $$
 
-Rounds with $A_t = L$ are feasible under the weak-threshold convention and are
-not counted as overcrowded.
+Rounds with $A_t = L$ are counted as overcrowded under the strict-threshold convention.
 
 ### 6.2 Payoff Metrics
 

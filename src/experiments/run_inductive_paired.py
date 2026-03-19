@@ -19,7 +19,6 @@ import pandas as pd
 
 from src.analysis.metrics import compute_all_metrics
 from src.analysis.plots import plot_recency_comparison
-from src.config import RepeatedGameConfig
 from src.experiments.populations import (
     build_homogeneous_non_recency,
     build_homogeneous_recency,

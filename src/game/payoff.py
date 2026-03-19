@@ -1,9 +1,11 @@
-""" Stage-game payoff rules for the El Farol / threshold minority game.
+"""Stage-game payoff rules for the El Farol / threshold minority game.
 
-Weak-threshold convention:
-u_i(a) = +1 if a_i = 1 and A <= L
-         -1 if a_i = 1 and A > L
-          0 if a_i = 0
+Strict-threshold convention:
+
+u_i(a) = +1 if a_i = 1 and A < L
+        -1 if a_i = 1 and A >= L
+         0 if a_i = 0
+
 where A = sum_i a_i is total attendance and L is the threshold (capacity).
 """
 
@@ -26,9 +28,11 @@ def attendance_from_actions(actions: Iterable[int]) -> int:
 
 def payoff_for_action(action: int, attendance: int, threshold: int) -> int:
     validate_action(action)
+
     if action == 0:
         return 0
-    return 1 if attendance <= threshold else -1
+
+    return 1 if attendance < threshold else -1
 
 
 def payoffs_for_actions(actions: Iterable[int], threshold: int) -> List[int]:
@@ -41,12 +45,12 @@ def payoffs_for_actions(actions: Iterable[int], threshold: int) -> List[int]:
 
 
 def is_overcrowded(attendance: int, threshold: int) -> bool:
-    """Canonical overcrowding test under the weak-threshold convention.
+    """Canonical overcrowding test under the strict-threshold convention.
 
-    Returns True iff attendance > threshold (strict inequality).
+    Returns True iff attendance >= threshold.
     This is the single source of truth for the overcrowding convention.
     """
-    return attendance > threshold
+    return attendance >= threshold
 
 
 @dataclass(frozen=True)

@@ -22,7 +22,6 @@ import pandas as pd
 
 from src.analysis.metrics import compute_all_metrics
 from src.analysis.plots import plot_paired_scoring_differences, plot_scoring_rule_comparison
-from src.config import RepeatedGameConfig
 from src.experiments.populations import (
     sample_predictor_banks,
     build_best_predictor_from_banks,

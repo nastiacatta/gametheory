@@ -1,23 +1,36 @@
 """
-Score update policies for inductive predictor agents.
+Score update policies for InductivePredictorAgent.
 
-Weak-threshold virtual payoff convention:
-- attend and A <= L  -> +1
-- attend and A > L   -> -1
-- stay home          ->  0
+This module implements the "El Farol" or "weak-threshold" virtual payoff convention,
+which differs from the symmetric binary payoff used by other agent families.
 
-For a predictor forecast \hat A_j(t), its implied action is:
-- attend if \hat A_j(t) <= L
-- stay home otherwise
+El Farol / Weak-Threshold Convention (this module):
+    - attend and A <= L  -> +1  (correct attendance)
+    - attend and A > L   -> -1  (incorrect attendance)
+    - stay home          ->  0  (no payoff, regardless of outcome)
 
-Non-recency:
-    s_j(t+1) = s_j(t) + \tilde u_j(t)
+This convention treats staying home as a "safe" option with neutral payoff,
+matching the original El Farol bar problem formulation where the decision
+is whether to go (with risk) or stay home (risk-free).
 
-Recency:
-    s_j(t+1) = lambda * s_j(t) + \tilde u_j(t)
+Compare with the Symmetric Binary Convention (used by VirtualPayoffPredictorAgent,
+SoftmaxPredictorAgent, RecencyWeightedPredictorAgent, TurnoverPredictorAgent):
+    - attend + not overcrowded -> +1
+    - stay home + overcrowded  -> +1  (rewarded for correct prediction)
+    - otherwise                -> -1
 
-where \tilde u_j(t) is the virtual payoff the predictor would have earned
-under the realised attendance.
+The symmetric convention rewards correct predictions on both sides, making it
+closer to Minority Game scoring where correctly predicting the minority wins.
+
+For a predictor forecast Â_j(t), its implied action is:
+    - attend if Â_j(t) <= L
+    - stay home otherwise
+
+Score update rules:
+    Non-recency: s_j(t+1) = s_j(t) + ũ_j(t)
+    Recency:     s_j(t+1) = λ * s_j(t) + ũ_j(t)
+
+where ũ_j(t) is the virtual payoff the predictor would have earned.
 """
 
 from __future__ import annotations

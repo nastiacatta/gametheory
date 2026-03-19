@@ -25,8 +25,6 @@ discarding poor performers and exploring new hypotheses.
 
 from __future__ import annotations
 
-from typing import List, Optional, Set, Tuple
-
 import numpy as np
 
 from src.agents.base import BaseAgent, RoundContext
@@ -44,14 +42,14 @@ class TurnoverPredictorAgent(BaseAgent):
 
     def __init__(
         self,
-        predictors: Optional[List[Tuple[str, Predictor]]] = None,
+        predictors: list[tuple[str, Predictor]] | None = None,
         lambda_decay: float = 0.95,
         patience: int = 10,
         error_threshold: float = 5.0,
-        master_library: Optional[List[Tuple[str, Predictor]]] = None,
+        master_library: list[tuple[str, Predictor]] | None = None,
+        seed: int | None = None,
     ) -> None:
-        """
-        Initialize turnover predictor agent.
+        """Initialize turnover predictor agent.
         
         Args:
             predictors: Initial predictor bank (name, callable pairs).
@@ -59,6 +57,7 @@ class TurnoverPredictorAgent(BaseAgent):
             patience: Consecutive failures before triggering replacement.
             error_threshold: Prediction error threshold for counting as failure.
             master_library: Full library to sample replacements from.
+            seed: Random seed for reproducible predictor replacement.
         """
         if predictors is None:
             predictors = default_predictor_library()[:6]
@@ -71,21 +70,23 @@ class TurnoverPredictorAgent(BaseAgent):
         if error_threshold < 0:
             raise ValueError("error_threshold must be non-negative")
         
-        self.predictor_names: List[str] = [name for name, _ in predictors]
-        self.predictors: List[Predictor] = [fn for _, fn in predictors]
+        self.predictor_names: list[str] = [name for name, _ in predictors]
+        self.predictors: list[Predictor] = [fn for _, fn in predictors]
         self.lambda_decay: float = lambda_decay
         self.patience: int = patience
         self.error_threshold: float = error_threshold
-        self.master_library: List[Tuple[str, Predictor]] = master_library
+        self.master_library: list[tuple[str, Predictor]] = master_library
+        self._seed: int | None = seed
+        self._rng: np.random.Generator = np.random.default_rng(seed)
         
-        self.scores: List[float] = [0.0] * len(self.predictors)
-        self._last_predictions: List[float] = [0.0] * len(self.predictors)
+        self.scores: list[float] = [0.0] * len(self.predictors)
+        self._last_predictions: list[float] = [0.0] * len(self.predictors)
         self._active_idx: int = 0
         self._consecutive_failures: int = 0
         self._replacements_count: int = 0
         
-        self.predictor_history: List[int] = []
-        self.replacement_events: List[int] = []
+        self.predictor_history: list[int] = []
+        self.replacement_events: list[int] = []
 
     def reset(self) -> None:
         """Reset agent state for a new game."""
@@ -96,10 +97,11 @@ class TurnoverPredictorAgent(BaseAgent):
         self._replacements_count = 0
         self.predictor_history = []
         self.replacement_events = []
+        self._rng = np.random.default_rng(self._seed)
 
-    def _get_unused_predictor(self, rng: np.random.Generator) -> Optional[Tuple[str, Predictor]]:
+    def _get_unused_predictor(self, rng: np.random.Generator) -> tuple[str, Predictor] | None:
         """Sample a predictor from master library not currently in use."""
-        current_names: Set[str] = set(self.predictor_names)
+        current_names: set[str] = set(self.predictor_names)
         available = [
             (name, fn) for name, fn in self.master_library
             if name not in current_names
@@ -149,7 +151,6 @@ class TurnoverPredictorAgent(BaseAgent):
         action: int,
         realised_attendance: int,
         payoff: int,
-        rng: Optional[np.random.Generator] = None,
     ) -> None:
         """Update scores with decay and virtual payoffs, potentially replace worst predictor."""
         _ = action, payoff
@@ -179,11 +180,8 @@ class TurnoverPredictorAgent(BaseAgent):
             self._consecutive_failures = 0
         
         if self._consecutive_failures >= self.patience:
-            if rng is None:
-                rng = np.random.default_rng()
-            
             round_idx = len(self.predictor_history) - 1
-            if self._replace_worst_predictor(rng):
+            if self._replace_worst_predictor(self._rng):
                 self.replacement_events.append(round_idx)
             self._consecutive_failures = 0
 
@@ -195,7 +193,7 @@ class TurnoverPredictorAgent(BaseAgent):
     def n_replacements(self) -> int:
         return self._replacements_count
 
-    def snapshot(self) -> dict:
+    def snapshot(self) -> dict[str, object]:
         """Return agent state for exports."""
         return {
             "agent_type": self.__class__.__name__,

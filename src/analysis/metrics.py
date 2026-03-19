@@ -4,7 +4,7 @@ Analysis metrics for the repeated El Farol threshold game.
 Threshold-centred observables:
   - σ²_L = (1/T) Σ (A_t - L)² (mean squared deviation from threshold)
   - MAD_L = (1/T) Σ |A_t - L| (mean absolute deviation from threshold)
-  - OvercrowdingRate = (1/T) Σ 1[A_t > L] (weak threshold: overcrowded when A > L)
+  - OvercrowdingRate = (1/T) Σ 1[A_t >= L] (strict threshold: overcrowded when A >= L)
 
 Payoff-side metrics:
   - Mean cumulative payoff
@@ -43,9 +43,9 @@ def mad_from_threshold(attendance_history: List[int], threshold: int) -> float:
 
 
 def overcrowding_rate(attendance_history: List[int], threshold: int) -> float:
-    """Fraction of rounds with A_t > L under the repo's A <= L convention."""
+    """Fraction of rounds with A_t >= L under the strict-threshold convention."""
     arr = np.array(attendance_history, dtype=float)
-    return float(np.mean(arr > threshold))
+    return float(np.mean(arr >= threshold))
 
 
 def mean_cumulative_payoff(cumulative_payoffs: List[int]) -> float:

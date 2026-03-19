@@ -125,7 +125,6 @@ def plot_grouped_bar_chart(
 
     regimes = df["regime"].unique()
     n_regimes = len(regimes)
-    n_metrics = len(metrics)
 
     stats = {}
     for regime in regimes:
@@ -152,7 +151,7 @@ def plot_grouped_bar_chart(
         means = [stats[r][metric_key][0] for r in regimes]
         cis = [stats[r][metric_key][1] for r in regimes]
 
-        bars = ax.bar(x, means, width, yerr=cis, capsize=4, alpha=0.8, edgecolor="black")
+        ax.bar(x, means, width, yerr=cis, capsize=4, alpha=0.8, edgecolor="black")
         ax.set_ylabel(metric_label)
         ax.set_xticks(x)
         ax.set_xticklabels(regimes, rotation=30, ha="right")

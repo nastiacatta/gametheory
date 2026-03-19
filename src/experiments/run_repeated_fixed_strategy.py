@@ -32,9 +32,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from src.agents.base import BaseAgent
 from src.agents.fixed_predictor_agent import FixedPredictorAgent
-from src.agents.predictors import Predictor, default_predictor_library
+from src.agents.predictors import default_predictor_library
 from src.experiments.populations import build_fixed_predictor_population
 from src.game.repeated_game import RepeatedMinorityGame, RepeatedGameResult
 
@@ -154,33 +153,23 @@ def run_repeated_fixed_strategy(
     output_dir: Path | str = "outputs/repeated_fixed_strategy",
     cover_all_predictors: bool = True,
 ) -> Tuple[RepeatedGameResult, pd.DataFrame]:
-    """
-    Run the Repeated Fixed Strategy baseline experiment.
+    """Run the Repeated Fixed Strategy baseline experiment.
 
     The game is seeded with a bootstrap attendance history of length 8 so
-    that every predictor has data from round 1.  This is part of the
+    that every predictor has data from round 1. This is part of the
     baseline definition, not an optional feature.
 
-    Parameters
-    ----------
-    n_players : int
-        Number of players (default: 101 per coursework).
-    threshold : int
-        Capacity threshold L (default: 60 per coursework).
-    n_rounds : int
-        Number of repeated rounds (default: 200 per coursework).
-    seed : int
-        Random seed for reproducibility.
-    output_dir : Path or str
-        Directory for outputs.
-    cover_all_predictors : bool
-        If True and n_players >= library size, every predictor appears at
-        least once in the population.
+    Args:
+        n_players: Number of players (default: 101 per coursework).
+        threshold: Capacity threshold L (default: 60 per coursework).
+        n_rounds: Number of repeated rounds (default: 200 per coursework).
+        seed: Random seed for reproducibility.
+        output_dir: Directory for outputs.
+        cover_all_predictors: If True and n_players >= library size, every
+            predictor appears at least once in the population.
 
-    Returns
-    -------
-    (RepeatedGameResult, pd.DataFrame)
-        Game result and predictor summary DataFrame.
+    Returns:
+        Tuple of (RepeatedGameResult, predictor summary DataFrame).
     """
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -240,7 +229,7 @@ def run_repeated_fixed_strategy(
     print(f"Saved: {output_path / 'predictor_summary.png'}")
 
     summary = result.summary()
-    print(f"\nSummary metrics:")
+    print("\nSummary metrics:")
     print(f"  Mean attendance: {summary['mean_attendance']:.2f}")
     print(f"  Std attendance: {summary['std_attendance']:.2f}")
     print(f"  Overcrowding rate: {summary['overcrowding_rate']:.4f}")

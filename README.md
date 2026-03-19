@@ -3,7 +3,7 @@
 Simulation code for the **El Farol threshold game** with minority-game-inspired inductive extensions. This repository implements a threshold-based coordination game where:
 
 1. **Actions are binary (0/1):** Each player chooses to **stay home** (0) or **go to the bar** (1).
-2. **Payoff rule is threshold-based with the weak convention:** Attendees receive +1 if total attendance $A \le L$, and −1 if $A > L$. Staying home always yields 0.
+2. **Payoff rule is threshold-based with the strict convention:** Attendees receive +1 if total attendance $A < L$, and −1 if $A \ge L$. Staying home always yields 0.
 3. **Arthur-inspired but not canonical MG:** This implementation draws on Arthur's (1994) El Farol problem and uses predictor-based inductive reasoning. It is **not** the canonical Challet–Zhang Minority Game, which uses symmetric actions $\{-1, +1\}$, binary history strings of length $M$, lookup-table strategies, and the control parameter $\alpha = 2^M / N$.
 
 Configurable parameters: player count $n$ (default 101), capacity threshold $L$ (default 60), and horizon $m$ (default 200 rounds). Designed for coursework; emphasis on reproducibility and theoretical accuracy.
@@ -114,20 +114,22 @@ Outputs (CSVs and figures) are written to `--output_dir`. The repeated runner wr
 - `summary.csv`: summary metrics (threshold-centred deviation measures)
 - Plots: `attendance.png`, `attendance_deviation.png`, `cum_avg_attendance.png`, etc.
 
-## Game Definition (Weak Threshold)
+## Game Definition (Strict Threshold)
 
-This implementation uses the **weak threshold** convention:
+This implementation uses the **strict threshold** convention:
 
 - Each player chooses **attend** (1) or **stay home** (0).
 - Let $A = \sum_i a_i$ be total attendance and $L$ be the capacity threshold.
 - Payoffs:
-  - If $A \le L$: attendees receive $+1$.
-  - If $A > L$: attendees receive $-1$.
+  - If $A < L$: attendees receive $+1$.
+  - If $A \ge L$: attendees receive $-1$.
   - Stay home: $0$ (neutral).
 
-**Pure-strategy Nash equilibria:** Exactly the profiles with $A = L$. There are $\binom{n}{L}$ such equilibria.
+**Pure-strategy Nash equilibria:**
+- If $L = 0$: only the all-stay-home profile (1 equilibrium).
+- If $L \ge 1$: exactly the profiles with $A = L - 1$. There are $\binom{n}{L-1}$ such equilibria.
 
-**Symmetric mixed equilibrium:** The equilibrium probability $p^*$ satisfies $\Pr(X \le L-1) = 1/2$ where $X \sim \mathrm{Bin}(n-1, p^*)$.
+**Symmetric mixed equilibrium:** The equilibrium probability $p^*$ satisfies $\Pr(X \le L-2) = 1/2$ where $X \sim \mathrm{Bin}(n-1, p^*)$.
 
 See `docs/game_definition.md` for full definitions, proofs, and theoretical analysis.
 
@@ -156,7 +158,7 @@ These are **Arthur-inspired inductive heuristics**, not a reconstruction of any 
 
 ### Score Update Rules
 
-Two modes based on memory treatment, using **virtual payoff** under the weak-threshold convention:
+Two modes based on memory treatment, using **virtual payoff** under the strict-threshold convention:
 
 **Non-recency (cumulative virtual payoff):**
 
@@ -167,8 +169,8 @@ $$s_j(t+1) = s_j(t) + \tilde{u}_j(t)$$
 $$s_j(t+1) = \lambda \cdot s_j(t) + \tilde{u}_j(t), \quad \lambda \in (0,1]$$
 
 where $\tilde{u}_j(t)$ is the virtual payoff predictor $j$ would have earned:
-- attend and A ≤ L: +1
-- attend and A > L: -1
+- attend and A < L: +1
+- attend and A >= L: -1
 - stay home: 0 (always)
 
 Lower λ = faster forgetting of past performance.
@@ -192,7 +194,7 @@ Each experiment writes `rounds.csv`, `players.csv`, `summary.csv` plus figures i
 **Threshold-centred metrics:**
 - Mean squared deviation from threshold: $\sigma_L^2 = \frac{1}{T} \sum_t (A_t - L)^2$
 - MAD from threshold: $\mathrm{MAD}_L = \frac{1}{T} \sum_t |A_t - L|$
-- Overcrowding rate: fraction of rounds with $A_t > L$
+- Overcrowding rate: fraction of rounds with $A_t \ge L$
 
 **Payoff metrics:**
 - Mean cumulative payoff
@@ -254,7 +256,7 @@ metrics, equilibria calculations, and static probability sweeps.
 │   │   ├── run_inductive.py
 │   │   └── run_heterogeneous.py
 │   └── game/
-│       ├── payoff.py           # Stage payoff (weak threshold)
+│       ├── payoff.py           # Stage payoff (strict threshold)
 │       ├── static_game.py      # Single-shot game
 │       └── repeated_game.py
 ├── tests/

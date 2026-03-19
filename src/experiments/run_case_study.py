@@ -30,8 +30,6 @@ import pandas as pd
 from src.agents.base import BaseAgent, RoundContext
 from src.agents.predictors import (
     Predictor,
-    last_value,
-    make_linear_trend,
     make_rolling_mean,
     mirror,
     mirror_threshold,
@@ -45,7 +43,6 @@ from src.analysis.plots import (
     plot_payoff_histogram,
     plot_ranked_final_payoffs,
 )
-from src.config import RepeatedGameConfig
 from src.game.repeated_game import RepeatedMinorityGame
 
 

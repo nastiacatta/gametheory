@@ -18,7 +18,7 @@ it was selected.
 
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -33,20 +33,20 @@ class SoftmaxPredictorAgent(BaseAgent):
 
     def __init__(
         self,
-        predictors: Optional[List[Tuple[str, Predictor]]] = None,
+        predictors: list[tuple[str, Predictor]] | None = None,
         beta: float = 1.0,
     ) -> None:
         if predictors is None:
             predictors = default_predictor_library()
         if beta < 0.0:
             raise ValueError("beta (inverse temperature) must be non-negative.")
-        self.predictor_names: List[str] = [name for name, _ in predictors]
-        self.predictors: List[Predictor] = [fn for _, fn in predictors]
-        self.scores: List[float] = [0.0] * len(self.predictors)
+        self.predictor_names: list[str] = [name for name, _ in predictors]
+        self.predictors: list[Predictor] = [fn for _, fn in predictors]
+        self.scores: list[float] = [0.0] * len(self.predictors)
         self.beta: float = beta
-        self._last_predictions: List[float] = [0.0] * len(self.predictors)
+        self._last_predictions: list[float] = [0.0] * len(self.predictors)
         self._active_idx: int = 0
-        self.predictor_history: List[int] = []
+        self.predictor_history: list[int] = []
 
     def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
         predictions = [
@@ -92,3 +92,13 @@ class SoftmaxPredictorAgent(BaseAgent):
     @property
     def active_predictor_name(self) -> str:
         return self.predictor_names[self._active_idx]
+
+    def snapshot(self) -> dict[str, Any]:
+        """Return agent state for exports."""
+        return {
+            "agent_type": self.__class__.__name__,
+            "beta": self.beta,
+            "predictor_names": list(self.predictor_names),
+            "scores": list(self.scores),
+            "active_predictor": self.active_predictor_name,
+        }

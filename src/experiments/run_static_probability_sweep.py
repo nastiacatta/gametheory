@@ -7,7 +7,7 @@ mixed strategies. Each value of p is evaluated via Monte Carlo simulation
 of independent one-shot games.
 
 This is an experiment layer on top of the core static game engine. The
-payoff logic mirrors src/game/payoff.py exactly (weak threshold convention).
+payoff logic mirrors src/game/payoff.py exactly (strict threshold convention).
 
 Output:
     - static_probability_sweep.csv
@@ -64,8 +64,8 @@ def simulate_static_mixed_profile(
     """
     decisions = (rng.random((n_samples, n_players)) < p).astype(int)
     attendance = decisions.sum(axis=1)
-    
-    overcrowded = attendance > threshold
+
+    overcrowded = attendance >= threshold
     overcrowding_rate = overcrowded.mean()
     
     n_attendees = attendance
@@ -182,7 +182,7 @@ def main() -> None:
     parser.add_argument("--output_dir", type=str, default="outputs")
     args = parser.parse_args()
     
-    print(f"Running static probability sweep...")
+    print("Running static probability sweep...")
     print(f"  n_players={args.n_players}, threshold={args.threshold}")
     print(f"  n_samples={args.n_samples}, grid_size={args.grid_size}")
     print(f"  seed={args.seed}")
@@ -198,11 +198,11 @@ def main() -> None:
     
     out_path = Path(args.output_dir).resolve()
     print(f"\nOutputs saved to: {out_path}")
-    print(f"  - tables/static_probability_sweep.csv")
-    print(f"  - figures/static_payoff_vs_p.png")
-    print(f"  - figures/static_attendance_vs_p.png")
-    print(f"  - figures/static_overcrowding_vs_p.png")
-    print(f"  - figures/static_counts_vs_p.png")
+    print("  - tables/static_probability_sweep.csv")
+    print("  - figures/static_payoff_vs_p.png")
+    print("  - figures/static_attendance_vs_p.png")
+    print("  - figures/static_overcrowding_vs_p.png")
+    print("  - figures/static_counts_vs_p.png")
     
     p_capacity = args.threshold / args.n_players
     idx = (df["p"] - p_capacity).abs().idxmin()

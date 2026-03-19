@@ -1,49 +1,44 @@
 """
 Static equilibrium analysis for the El Farol threshold game.
 
+Strict-threshold convention.
+
 Pure-strategy Nash equilibria:
-    Exactly the profiles with A = L (attendance equals threshold).
-    Count: C(n, L) = n! / (L! * (n-L)!)
+    - threshold == 0: only the all-stay-home profile (count = 1)
+    - threshold >= 1: exactly the profiles with A = L - 1
+    Count: C(n, L-1) for L >= 1
 
 Symmetric mixed-strategy Nash equilibrium:
     The equilibrium probability p* satisfies:
-        Pr(X <= L-1) = 1/2,  where X ~ Bin(n-1, p*)
-    
+        Pr(X <= L-2) = 1/2,  where X ~ Bin(n-1, p*)
+
     This condition ensures indifference between attending and staying home:
-        E[u(attend)] = Pr(X <= L-1) - Pr(X >= L) = 2*Pr(X <= L-1) - 1 = 0
+        E[u(attend)] = Pr(X <= L-2) - Pr(X >= L-1) = 2*Pr(X <= L-2) - 1 = 0
 """
 
 from __future__ import annotations
 
 from math import comb
-from typing import Tuple
 
 from scipy import stats
 
 
 def count_pure_ne(n_players: int, threshold: int) -> int:
-    """
-    Count pure-strategy Nash equilibria in the El Farol threshold game.
-    
-    Under weak-threshold payoffs, NE are exactly the profiles with A = L.
-    The count is C(n, L) = n choose L.
-    
-    Args:
-        n_players: Total number of players.
-        threshold: Capacity threshold L.
-    
-    Returns:
-        Number of pure-strategy Nash equilibria.
-    
-    Raises:
-        ValueError: If threshold is out of valid range [0, n_players].
+    """Count pure-strategy Nash equilibria in the strict-threshold El Farol game.
+
+    Under strict-threshold payoffs, NE are:
+    - threshold == 0: only the all-stay-home profile
+    - threshold >= 1: exactly the profiles with A = L - 1
     """
     if not (0 <= threshold <= n_players):
         raise ValueError(f"threshold must be in [0, {n_players}], got {threshold}")
     if n_players < 0:
         raise ValueError(f"n_players must be non-negative, got {n_players}")
-    
-    return comb(n_players, threshold)
+
+    if threshold == 0:
+        return 1
+
+    return comb(n_players, threshold - 1)
 
 
 def solve_symmetric_mixed_p_star(
@@ -52,37 +47,22 @@ def solve_symmetric_mixed_p_star(
     tol: float = 1e-10,
     max_iter: int = 1000,
 ) -> float:
-    """
-    Solve for the symmetric mixed-strategy Nash equilibrium probability p*.
-    
-    The equilibrium condition is:
-        Pr(X <= L-1) = 1/2,  where X ~ Bin(n-1, p*)
-    
-    Uses bisection on [0, 1] to find p* such that the CDF condition holds.
-    
-    Args:
-        n_players: Total number of players (n).
-        threshold: Capacity threshold (L).
-        tol: Convergence tolerance for bisection.
-        max_iter: Maximum iterations.
-    
-    Returns:
-        The equilibrium probability p* in (0, 1).
-    
-    Raises:
-        ValueError: If parameters are invalid or no solution exists.
+    """Solve for the symmetric mixed-strategy Nash equilibrium probability p*.
+
+    Strict-threshold equilibrium condition:
+    Pr(X <= L-2) = 1/2, where X ~ Bin(n-1, p*)
     """
     if n_players < 2:
         raise ValueError("n_players must be at least 2 for mixed equilibrium")
-    if not (1 <= threshold <= n_players - 1):
+    if not (2 <= threshold <= n_players):
         raise ValueError(
-            f"threshold must be in [1, {n_players - 1}] for interior mixed equilibrium, "
+            f"threshold must be in [2, {n_players}] for interior mixed equilibrium, "
             f"got {threshold}"
         )
-    
+
     n_others = n_players - 1
-    target_k = threshold - 1
-    
+    target_k = threshold - 2
+
     def objective(p: float) -> float:
         if p <= 0:
             return 1.0 - 0.5
@@ -90,31 +70,31 @@ def solve_symmetric_mixed_p_star(
             return 0.0 - 0.5
         cdf_val = stats.binom.cdf(target_k, n_others, p)
         return cdf_val - 0.5
-    
+
     lo, hi = 0.0, 1.0
     f_lo = objective(lo)
     f_hi = objective(hi)
-    
+
     if f_lo * f_hi > 0:
         raise ValueError(
             f"No root in (0,1) for n={n_players}, L={threshold}. "
             f"f(0)={f_lo:.4f}, f(1)={f_hi:.4f}"
         )
-    
+
     for _ in range(max_iter):
         mid = (lo + hi) / 2.0
         f_mid = objective(mid)
-        
+
         if abs(f_mid) < tol or (hi - lo) / 2.0 < tol:
             return mid
-        
+
         if f_lo * f_mid < 0:
             hi = mid
             f_hi = f_mid
         else:
             lo = mid
             f_lo = f_mid
-    
+
     return (lo + hi) / 2.0
 
 

@@ -28,12 +28,12 @@ def test_repeated_game_cumulative_payoffs_at_threshold() -> None:
     result = game.play()
 
     assert result.attendance_history == [2, 2, 2, 2]
-    assert result.cumulative_payoffs == [4, 4, 0]
+    assert result.cumulative_payoffs == [-4, -4, 0]
 
     summary = result.summary()
     assert summary["n_rounds"] == 4.0
     assert summary["mean_attendance"] == 2.0
-    assert summary["overcrowding_rate"] == 0.0
+    assert summary["overcrowding_rate"] == 1.0
 
 
 def test_repeated_game_accepts_even_n() -> None:

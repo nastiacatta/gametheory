@@ -23,7 +23,9 @@ from src.agents.predictor_agent import InductivePredictorAgent
 from src.agents.predictors import Predictor, default_predictor_library, sample_predictor_library
 from src.agents.producer_agent import ProducerAgent
 from src.agents.random_agent import RandomAgent
+from src.agents.recency_weighted_predictor_agent import RecencyWeightedPredictorAgent
 from src.agents.score_updaters import CumulativeScoreUpdater, RecencyScoreUpdater
+from src.agents.softmax_predictor_agent import SoftmaxPredictorAgent
 from src.agents.virtual_payoff_predictor_agent import VirtualPayoffPredictorAgent
 
 PredictorBank = List[Tuple[str, Predictor]]
@@ -101,21 +103,30 @@ def build_homogeneous_non_recency(
 def build_homogeneous_recency(
     n_players: int,
     lambda_decay: float = 0.95,
+    selection: str = "argmax",
+    beta: float = 1.0,
     predictors_per_agent: int = 6,
     seed: int = 42,
     predictor_banks: Optional[Sequence[PredictorBank]] = None,
 ) -> List[BaseAgent]:
     """
-    All agents use recency-weighted virtual-payoff score updating with hard argmax.
+    All agents use recency-weighted virtual-payoff score updating.
 
     Score update:
-        s_j(t+1) = lambda * s_j(t) + \tilde u_j(t)
-    where \tilde u_j(t) is the virtual payoff implied by predictor j.
+        s_j(t+1) = lambda * s_j(t) + ũ_j(t)
+    where ũ_j(t) is the virtual payoff implied by predictor j.
+
+    Args:
+        n_players: Number of agents.
+        lambda_decay: Score decay factor in (0, 1]. Lower = faster forgetting.
+        selection: "argmax" for hard selection, "softmax" for stochastic.
+        beta: Inverse temperature for softmax selection (ignored if argmax).
+        predictors_per_agent: Number of predictors per agent.
+        seed: Random seed for reproducibility.
+        predictor_banks: Pre-sampled predictor banks (optional).
 
     If predictor_banks is provided, use those instead of sampling new banks.
     """
-    updater = RecencyScoreUpdater(lambda_decay=lambda_decay)
-
     if predictor_banks is None:
         _max_k = len(default_predictor_library())
         if not (1 <= predictors_per_agent <= _max_k):
@@ -130,9 +141,11 @@ def build_homogeneous_recency(
         raise ValueError("predictor_banks length must equal n_players.")
 
     return [
-        InductivePredictorAgent(
+        RecencyWeightedPredictorAgent(
             predictors=list(bank),
-            score_updater=updater,
+            lambda_decay=lambda_decay,
+            selection=selection,
+            beta=beta,
         )
         for bank in predictor_banks
     ]
@@ -148,49 +161,125 @@ def build_homogeneous_fixed(n_players: int, predicted_attendance: int) -> List[B
     return [FixedAttendanceAgent(predicted_attendance=predicted_attendance) for _ in range(n_players)]
 
 
+def build_homogeneous_best_predictor(
+    n_players: int,
+    predictors_per_agent: int = 6,
+    seed: int = 42,
+    predictor_banks: Optional[Sequence[PredictorBank]] = None,
+) -> List[BaseAgent]:
+    """
+    All agents use BestPredictorAgent with cumulative absolute-error scoring.
+
+    Score update: s_j(t+1) = s_j(t) - |forecast_j(t) - A_t|
+    Selection: hard argmax over scores (ties broken randomly).
+
+    If predictor_banks is provided, use those instead of sampling new banks.
+    """
+    if predictor_banks is None:
+        _max_k = len(default_predictor_library())
+        if not (1 <= predictors_per_agent <= _max_k):
+            raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
+        predictor_banks = sample_predictor_banks(
+            n_players=n_players,
+            predictors_per_agent=predictors_per_agent,
+            seed=seed,
+        )
+
+    if len(predictor_banks) != n_players:
+        raise ValueError("predictor_banks length must equal n_players.")
+
+    return [
+        BestPredictorAgent(predictors=list(bank))
+        for bank in predictor_banks
+    ]
+
+
+def build_homogeneous_softmax(
+    n_players: int,
+    beta: float = 1.0,
+    predictors_per_agent: int = 6,
+    seed: int = 42,
+    predictor_banks: Optional[Sequence[PredictorBank]] = None,
+) -> List[BaseAgent]:
+    """
+    All agents use SoftmaxPredictorAgent with virtual-payoff scoring.
+
+    Score update: s_j(t+1) = s_j(t) + ũ_j(t) where ũ = +1 if implied action wins, -1 otherwise.
+    Selection: softmax/Boltzmann distribution with inverse temperature beta.
+
+    If predictor_banks is provided, use those instead of sampling new banks.
+    """
+    if predictor_banks is None:
+        _max_k = len(default_predictor_library())
+        if not (1 <= predictors_per_agent <= _max_k):
+            raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
+        predictor_banks = sample_predictor_banks(
+            n_players=n_players,
+            predictors_per_agent=predictors_per_agent,
+            seed=seed,
+        )
+
+    if len(predictor_banks) != n_players:
+        raise ValueError("predictor_banks length must equal n_players.")
+
+    return [
+        SoftmaxPredictorAgent(predictors=list(bank), beta=beta)
+        for bank in predictor_banks
+    ]
+
+
 def build_heterogeneous(
     n_players: int,
-    p_inductive: float,
-    p_random: float,
-    lambda_decay: float | None = None,
+    p_best: float = 0.0,
+    p_softmax: float = 0.0,
+    p_random: float = 0.0,
+    beta: float = 1.0,
     predictors_per_agent: int = 6,
     seed: int = 42,
 ) -> List[BaseAgent]:
     """
-    Mix of inductive (non_recency or recency virtual-payoff) and random agents.
+    Mix of best-predictor, softmax-predictor, and random agents.
+
+    Args:
+        n_players: Total number of agents.
+        p_best: Share of BestPredictorAgent (absolute-error scoring, hard argmax).
+        p_softmax: Share of SoftmaxPredictorAgent (virtual-payoff scoring, softmax selection).
+        p_random: Share of RandomAgent.
+        beta: Inverse temperature for softmax agents.
+        predictors_per_agent: Number of predictors per adaptive agent.
+        seed: Random seed for reproducibility.
 
     Shares must lie in [0, 1] and sum to 1.0.
-    If lambda_decay is None, use non_recency; else use recency.
     """
     _max_k = len(default_predictor_library())
     if not (1 <= predictors_per_agent <= _max_k):
         raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
 
-    shares = [p_inductive, p_random]
+    shares = [p_best, p_softmax, p_random]
 
     if any(p < 0.0 or p > 1.0 for p in shares):
         raise ValueError("All shares must be in [0, 1].")
 
     if not isclose(sum(shares), 1.0, rel_tol=0.0, abs_tol=1e-9):
-        raise ValueError("p_inductive + p_random must equal 1.0.")
+        raise ValueError("p_best + p_softmax + p_random must equal 1.0.")
 
-    n_inductive = int(round(n_players * p_inductive))
-    n_random = n_players - n_inductive
+    n_best = int(round(n_players * p_best))
+    n_softmax = int(round(n_players * p_softmax))
+    n_random = n_players - n_best - n_softmax
 
     rng = np.random.default_rng(seed)
     agents: List[BaseAgent] = []
 
-    if lambda_decay is None:
-        updater = CumulativeScoreUpdater()
-    else:
-        updater = RecencyScoreUpdater(lambda_decay=lambda_decay)
-
     agents.extend(
-        InductivePredictorAgent(
+        BestPredictorAgent(predictors=_adaptive_bank(rng, predictors_per_agent))
+        for _ in range(n_best)
+    )
+    agents.extend(
+        SoftmaxPredictorAgent(
             predictors=_adaptive_bank(rng, predictors_per_agent),
-            score_updater=updater,
+            beta=beta,
         )
-        for _ in range(n_inductive)
+        for _ in range(n_softmax)
     )
     agents.extend(RandomAgent(p_attend=0.5) for _ in range(n_random))
     return agents
@@ -199,7 +288,8 @@ def build_heterogeneous(
 def build_producer_speculator(
     n_players: int,
     n_producers: int,
-    lambda_decay: float | None = None,
+    speculator_type: str = "best",
+    beta: float = 1.0,
     predictors_per_agent: int = 6,
     seed: int = 42,
     producer_base_prediction: float | None = None,
@@ -207,14 +297,27 @@ def build_producer_speculator(
     threshold: int | None = None,
 ) -> List[BaseAgent]:
     """
-    Producers (non-adaptive noisy-threshold) + speculators (inductive agents).
+    Producers (non-adaptive noisy-threshold) + speculators (adaptive agents).
 
-    If lambda_decay is None, speculators use non_recency virtual-payoff; else recency.
+    Args:
+        n_players: Total number of agents.
+        n_producers: Number of producer agents.
+        speculator_type: "best" for BestPredictorAgent, "softmax" for SoftmaxPredictorAgent.
+        beta: Inverse temperature for softmax speculators (ignored if type is "best").
+        predictors_per_agent: Number of predictors per speculator.
+        seed: Random seed for reproducibility.
+        producer_base_prediction: Base prediction for producers (defaults to threshold).
+        producer_noise_std: Standard deviation of producer noise.
+        threshold: Game threshold (required if producer_base_prediction not specified).
+
     producer_base_prediction defaults to threshold if not specified.
     """
     _max_k = len(default_predictor_library())
     if not (1 <= predictors_per_agent <= _max_k):
         raise ValueError(f"predictors_per_agent must be between 1 and {_max_k}.")
+
+    if speculator_type not in ("best", "softmax"):
+        raise ValueError("speculator_type must be 'best' or 'softmax'.")
 
     n_speculators = n_players - n_producers
     if n_speculators < 0:
@@ -235,18 +338,19 @@ def build_producer_speculator(
         for _ in range(n_producers)
     )
 
-    if lambda_decay is None:
-        updater = CumulativeScoreUpdater()
-    else:
-        updater = RecencyScoreUpdater(lambda_decay=lambda_decay)
-
-    agents.extend(
-        InductivePredictorAgent(
-            predictors=_adaptive_bank(rng, predictors_per_agent),
-            score_updater=updater,
+    if speculator_type == "best":
+        agents.extend(
+            BestPredictorAgent(predictors=_adaptive_bank(rng, predictors_per_agent))
+            for _ in range(n_speculators)
         )
-        for _ in range(n_speculators)
-    )
+    else:
+        agents.extend(
+            SoftmaxPredictorAgent(
+                predictors=_adaptive_bank(rng, predictors_per_agent),
+                beta=beta,
+            )
+            for _ in range(n_speculators)
+        )
 
     return agents
 

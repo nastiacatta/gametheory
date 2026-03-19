@@ -18,8 +18,6 @@ Selection: argmax or softmax over decayed scores.
 
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
-
 import numpy as np
 
 from src.agents.base import BaseAgent, RoundContext
@@ -36,13 +34,12 @@ class RecencyWeightedPredictorAgent(BaseAgent):
 
     def __init__(
         self,
-        predictors: Optional[List[Tuple[str, Predictor]]] = None,
+        predictors: list[tuple[str, Predictor]] | None = None,
         lambda_decay: float = 0.95,
         selection: str = "argmax",
         beta: float = 1.0,
     ) -> None:
-        """
-        Initialize recency-weighted predictor agent.
+        """Initialize recency-weighted predictor agent.
         
         Args:
             predictors: List of (name, callable) predictor pairs.
@@ -59,17 +56,17 @@ class RecencyWeightedPredictorAgent(BaseAgent):
         if beta < 0:
             raise ValueError("beta must be non-negative")
         
-        self.predictor_names: List[str] = [name for name, _ in predictors]
-        self.predictors: List[Predictor] = [fn for _, fn in predictors]
+        self.predictor_names: list[str] = [name for name, _ in predictors]
+        self.predictors: list[Predictor] = [fn for _, fn in predictors]
         self.lambda_decay: float = lambda_decay
         self.selection: str = selection
         self.beta: float = beta
         
-        self.scores: List[float] = [0.0] * len(self.predictors)
-        self._last_predictions: List[float] = [0.0] * len(self.predictors)
+        self.scores: list[float] = [0.0] * len(self.predictors)
+        self._last_predictions: list[float] = [0.0] * len(self.predictors)
         self._active_idx: int = 0
-        self.predictor_history: List[int] = []
-        self.score_history: List[List[float]] = []
+        self.predictor_history: list[int] = []
+        self.score_history: list[list[float]] = []
 
     def reset(self) -> None:
         """Reset scores and history for a new game."""
@@ -128,7 +125,7 @@ class RecencyWeightedPredictorAgent(BaseAgent):
     def active_predictor_name(self) -> str:
         return self.predictor_names[self._active_idx]
 
-    def snapshot(self) -> dict:
+    def snapshot(self) -> dict[str, object]:
         """Return agent state for exports."""
         return {
             "agent_type": self.__class__.__name__,

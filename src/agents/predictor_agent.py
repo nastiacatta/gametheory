@@ -12,7 +12,7 @@ El Farol convention.
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -30,21 +30,21 @@ class InductivePredictorAgent(BaseAgent):
 
     def __init__(
         self,
-        predictors: Optional[List[Tuple[str, Predictor]]] = None,
-        score_updater: Optional[ScoreUpdater] = None,
+        predictors: list[tuple[str, Predictor]] | None = None,
+        score_updater: ScoreUpdater | None = None,
     ) -> None:
         if predictors is None:
             predictors = default_predictor_library()
         if score_updater is None:
             score_updater = CumulativeScoreUpdater()
 
-        self.predictor_names: List[str] = [name for name, _ in predictors]
-        self.predictors: List[Predictor] = [fn for _, fn in predictors]
+        self.predictor_names: list[str] = [name for name, _ in predictors]
+        self.predictors: list[Predictor] = [fn for _, fn in predictors]
         self.score_updater: ScoreUpdater = score_updater
-        self.scores: List[float] = [0.0] * len(self.predictors)
-        self._last_predictions: List[float] = [0.0] * len(self.predictors)
+        self.scores: list[float] = [0.0] * len(self.predictors)
+        self._last_predictions: list[float] = [0.0] * len(self.predictors)
         self._active_idx: int = 0
-        self.predictor_history: List[int] = []
+        self.predictor_history: list[int] = []
 
     def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
         predictions = [

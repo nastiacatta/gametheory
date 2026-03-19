@@ -20,10 +20,10 @@ Arthur's original predictor assignment process.  The library includes:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from statistics import median
-from typing import Callable, List, Tuple
 
-Predictor = Callable[[Tuple[int, ...], int, int], float]
+Predictor = Callable[[tuple[int, ...], int, int], float]
 
 
 def _clip_prediction(value: float, n_players: int) -> float:
@@ -31,19 +31,19 @@ def _clip_prediction(value: float, n_players: int) -> float:
     return max(0.0, min(float(n_players), float(value)))
 
 
-def _fallback_threshold(history: Tuple[int, ...], threshold: int) -> float:
+def _fallback_threshold(history: tuple[int, ...], threshold: int) -> float:
     """Default fallback when history is too short."""
     return float(threshold)
 
 
-def last_value(history: Tuple[int, ...], n_players: int, threshold: int) -> float:
+def last_value(history: tuple[int, ...], n_players: int, threshold: int) -> float:
     """Predict same attendance as last round."""
     if not history:
         return float(threshold)
     return float(history[-1])
 
 
-def mirror(history: Tuple[int, ...], n_players: int, threshold: int) -> float:
+def mirror(history: tuple[int, ...], n_players: int, threshold: int) -> float:
     """Contrarian: predict n - last_value (mirror around n/2)."""
     if not history:
         return float(threshold)
@@ -53,7 +53,7 @@ def mirror(history: Tuple[int, ...], n_players: int, threshold: int) -> float:
 def make_rolling_mean(window: int = 4) -> Predictor:
     """Factory: average attendance over the last *window* rounds."""
 
-    def predictor(history: Tuple[int, ...], n_players: int, threshold: int) -> float:
+    def predictor(history: tuple[int, ...], n_players: int, threshold: int) -> float:
         if not history:
             return float(threshold)
         recent = history[-window:]
@@ -67,12 +67,10 @@ def make_rolling_mean(window: int = 4) -> Predictor:
 def make_linear_trend(window: int = 8) -> Predictor:
     """Factory: linear extrapolation of the trend over last *window* rounds."""
 
-    def predictor(history: Tuple[int, ...], n_players: int, threshold: int) -> float:
+    def predictor(history: tuple[int, ...], n_players: int, threshold: int) -> float:
         if len(history) < 2:
             return float(threshold)
         recent = history[-window:]
-        if len(recent) < 2:
-            return float(recent[-1])
         slope = (recent[-1] - recent[0]) / (len(recent) - 1)
         predicted = recent[-1] + slope
         return max(0.0, min(float(n_players), predicted))
@@ -85,7 +83,7 @@ def make_linear_trend(window: int = 8) -> Predictor:
 def make_lag_cycle(lag: int) -> Predictor:
     """Factory: repeat the attendance from *lag* rounds ago."""
 
-    def predictor(history: Tuple[int, ...], n_players: int, threshold: int) -> float:
+    def predictor(history: tuple[int, ...], n_players: int, threshold: int) -> float:
         if len(history) < lag:
             return float(threshold)
         return float(history[-lag])
@@ -98,7 +96,7 @@ def make_lag_cycle(lag: int) -> Predictor:
 def make_rolling_median(window: int) -> Predictor:
     """Factory: median attendance over the last *window* rounds."""
 
-    def predictor(history: Tuple[int, ...], n_players: int, threshold: int) -> float:
+    def predictor(history: tuple[int, ...], n_players: int, threshold: int) -> float:
         if len(history) < window:
             return _fallback_threshold(history, threshold)
         return _clip_prediction(median(history[-window:]), n_players)
@@ -108,21 +106,21 @@ def make_rolling_median(window: int) -> Predictor:
     return predictor
 
 
-def mean_all_history(history: Tuple[int, ...], n_players: int, threshold: int) -> float:
+def mean_all_history(history: tuple[int, ...], n_players: int, threshold: int) -> float:
     """Predict using the mean of all recorded attendance."""
     if not history:
         return _fallback_threshold(history, threshold)
     return _clip_prediction(sum(history) / len(history), n_players)
 
 
-def mirror_threshold(history: Tuple[int, ...], n_players: int, threshold: int) -> float:
+def mirror_threshold(history: tuple[int, ...], n_players: int, threshold: int) -> float:
     """Mirror last attendance around the threshold: pred = 2*threshold - last."""
     if not history:
         return _fallback_threshold(history, threshold)
     return _clip_prediction(2.0 * threshold - history[-1], n_players)
 
 
-def default_predictor_library() -> List[Tuple[str, Predictor]]:
+def default_predictor_library() -> list[tuple[str, Predictor]]:
     """Return the fixed master predictor library used by this repo.
     
     Inspired by predictor-based inductive strategies, not intended as an
@@ -151,7 +149,7 @@ def default_predictor_library() -> List[Tuple[str, Predictor]]:
 def sample_predictor_library(
     rng,
     k: int,
-) -> List[Tuple[str, Predictor]]:
+) -> list[tuple[str, Predictor]]:
     """
     Sample k distinct predictors without replacement from the fixed master library.
     Used to give each adaptive agent its own predictor bank while keeping a common

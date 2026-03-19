@@ -35,51 +35,30 @@ def expected_iid_threshold_mse(
 def expected_iid_overcrowding_rate(
     n_players: int, p_attend: float, threshold: int
 ) -> float:
-    """
-    P(A_t > L) for i.i.d. Bernoulli(p) attendance.
-
-    Computes sum_{k=L+1}^{n} C(n,k) p^k (1-p)^{n-k}.
-    """
+    """P(A_t >= L) for i.i.d. Bernoulli(p) attendance."""
     return sum(
         comb(n_players, k) * (p_attend**k) * ((1.0 - p_attend) ** (n_players - k))
-        for k in range(threshold + 1, n_players + 1)
+        for k in range(threshold, n_players + 1)
     )
 
 
 def symmetric_mixed_equilibrium_p(
     n_players: int, threshold: int, tol: float = 1e-12
 ) -> float:
-    """
-    Symmetric mixed Nash equilibrium probability for the threshold game.
+    """Symmetric mixed Nash equilibrium probability for the strict-threshold game.
 
-    At equilibrium, attending must be indifferent to staying home (payoff 0).
-    The expected payoff from attending is:
-        E[u | attend] = P(not overcrowded) * (+1) + P(overcrowded) * (-1)
-                      = 2 * P(A_{-i} < L) - 1
-
-    Setting this to 0 gives the equilibrium condition:
-        sum_{k=0}^{L-1} C(n-1, k) p^k (1-p)^{n-1-k} = 1/2
-
-    Uses bisection to find p satisfying this condition.
-
-    Args:
-        n_players: Total number of players (n >= 2)
-        threshold: Capacity threshold L in [0, n-1]
-        tol: Convergence tolerance for bisection
-
-    Returns:
-        Equilibrium probability p*
+    At equilibrium:
+    E[u | attend] = 2 * P(A_{-i} <= L-2) - 1 = 0
     """
     if n_players < 2:
         raise ValueError("n_players must be at least 2")
-    if not (0 <= threshold <= n_players - 1):
-        raise ValueError("threshold must be in [0, n_players - 1]")
+    if not (2 <= threshold <= n_players):
+        raise ValueError("threshold must be in [2, n_players]")
 
     def attend_payoff(p: float) -> float:
-        """Expected payoff from attending when others play Bernoulli(p)."""
         prob_not_overcrowded = sum(
             comb(n_players - 1, k) * (p**k) * ((1.0 - p) ** (n_players - 1 - k))
-            for k in range(threshold)
+            for k in range(threshold - 1)
         )
         return 2.0 * prob_not_overcrowded - 1.0
 

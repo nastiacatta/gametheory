@@ -342,7 +342,7 @@ def run_static_sweep(args: argparse.Namespace) -> None:
     """Run static probability sweep experiment."""
     from src.experiments.run_static_probability_sweep import run_probability_sweep
 
-    print(f"Running static probability sweep...")
+    print("Running static probability sweep...")
     print(f"  n_players={args.n_players}, threshold={args.threshold}")
     print(f"  n_samples={args.n_samples}, grid_size={args.grid_size}")
     print(f"  seed={args.seed}")
@@ -358,11 +358,11 @@ def run_static_sweep(args: argparse.Namespace) -> None:
 
     out_path = Path(args.output_dir).resolve()
     print(f"\nOutputs saved to: {out_path}")
-    print(f"  - tables/static_probability_sweep.csv")
-    print(f"  - figures/static_payoff_vs_p.png")
-    print(f"  - figures/static_attendance_vs_p.png")
-    print(f"  - figures/static_overcrowding_vs_p.png")
-    print(f"  - figures/static_counts_vs_p.png")
+    print("  - tables/static_probability_sweep.csv")
+    print("  - figures/static_payoff_vs_p.png")
+    print("  - figures/static_attendance_vs_p.png")
+    print("  - figures/static_overcrowding_vs_p.png")
+    print("  - figures/static_counts_vs_p.png")
 
     p_capacity = args.threshold / args.n_players
     idx = (df["p"] - p_capacity).abs().idxmin()

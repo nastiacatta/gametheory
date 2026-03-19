@@ -16,17 +16,17 @@ class TestCountPureNE:
     """Tests for pure-strategy Nash equilibrium counting."""
 
     def test_count_pure_ne_default_params(self) -> None:
-        """NE count for n=101, L=60 should be C(101, 60)."""
+        """NE count for n=101, L=60 should be C(101, 59)."""
         result = count_pure_ne(101, 60)
-        assert result == math.comb(101, 60)
+        assert result == math.comb(101, 59)
 
     def test_count_pure_ne_small_game(self) -> None:
-        """NE count for n=5, L=2 should be C(5, 2) = 10."""
-        assert count_pure_ne(5, 2) == 10
+        """NE count for n=5, L=2 should be C(5, 1) = 5."""
+        assert count_pure_ne(5, 2) == 5
 
     def test_count_pure_ne_boundary_all_attend(self) -> None:
-        """NE count for L=n should be 1 (all attend)."""
-        assert count_pure_ne(10, 10) == 1
+        """NE count for L=n should be C(n, n-1) = n."""
+        assert count_pure_ne(10, 10) == 10
 
     def test_count_pure_ne_boundary_none_attend(self) -> None:
         """NE count for L=0 should be 1 (none attend)."""
@@ -59,11 +59,11 @@ class TestSolveSymmetricMixedPStar:
     def test_p_star_convergence(self) -> None:
         """Check that solution satisfies equilibrium condition approximately."""
         from scipy import stats
-        
+
         n, L = 101, 60
         p_star = solve_symmetric_mixed_p_star(n, L)
-        
-        cdf_val = stats.binom.cdf(L - 1, n - 1, p_star)
+
+        cdf_val = stats.binom.cdf(L - 2, n - 1, p_star)
         assert abs(cdf_val - 0.5) < 1e-8
 
     def test_p_star_invalid_small_n(self) -> None:
@@ -72,11 +72,16 @@ class TestSolveSymmetricMixedPStar:
             solve_symmetric_mixed_p_star(1, 0)
 
     def test_p_star_boundary_threshold(self) -> None:
-        """Should raise for boundary thresholds (no interior equilibrium)."""
+        """Should raise for boundary thresholds L=0 and L=1 (no interior equilibrium)."""
         with pytest.raises(ValueError, match="threshold must be in"):
             solve_symmetric_mixed_p_star(10, 0)
         with pytest.raises(ValueError, match="threshold must be in"):
-            solve_symmetric_mixed_p_star(10, 10)
+            solve_symmetric_mixed_p_star(10, 1)
+
+    def test_p_star_threshold_equals_n(self) -> None:
+        """L=n should now succeed under strict rule."""
+        p_star = solve_symmetric_mixed_p_star(10, 10)
+        assert 0.0 < p_star < 1.0
 
 
 class TestComputeExpectedAttendance:
@@ -115,7 +120,7 @@ class TestStaticEquilibriumSummary:
     def test_summary_values_consistent(self) -> None:
         """Summary values should be internally consistent."""
         summary = static_equilibrium_summary(101, 60)
-        assert summary["pure_ne_count"] == math.comb(101, 60)
+        assert summary["pure_ne_count"] == math.comb(101, 59)
         assert summary["expected_attendance_under_mixed"] == pytest.approx(
             101 * summary["mixed_p_star"]
         )

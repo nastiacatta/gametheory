@@ -281,50 +281,48 @@ class TestOutputFiles:
 class TestPayoffConsistencyWithCoreModel:
     """Tests that verify the sweep uses the same payoff rule as src/game/payoff.py."""
 
-    def test_at_threshold_attendees_win(self) -> None:
+    def test_at_threshold_attendees_lose(self) -> None:
         """
-        When attendance == threshold (weak inequality), attendees get +1.
-        
+        When attendance == threshold (strict inequality), attendees get -1.
+
         This test verifies consistency with src/game/payoff.py which uses:
-            return 1 if attendance <= threshold else -1
+            return 1 if attendance < threshold else -1
         """
-        rng = np.random.default_rng(42)
         n_samples = 10000
         n_players = 10
         threshold = 5
-        
+
         decisions = np.zeros((n_samples, n_players), dtype=int)
         decisions[:, :threshold] = 1
-        
+
         attendance = decisions.sum(axis=1)
         assert all(attendance == threshold)
-        
-        overcrowded = attendance > threshold
-        
+
+        overcrowded = attendance >= threshold
+
         n_positive = np.where(~overcrowded, attendance, 0)
         n_negative = np.where(overcrowded, attendance, 0)
-        
-        assert all(n_positive == threshold)
-        assert all(n_negative == 0)
+
+        assert all(n_positive == 0)
+        assert all(n_negative == threshold)
 
     def test_above_threshold_attendees_lose(self) -> None:
         """
         When attendance > threshold, attendees get -1.
         """
-        rng = np.random.default_rng(42)
         n_samples = 10000
         n_players = 10
         threshold = 5
-        
+
         decisions = np.ones((n_samples, n_players), dtype=int)
-        
+
         attendance = decisions.sum(axis=1)
         assert all(attendance == n_players)
-        
-        overcrowded = attendance > threshold
-        
+
+        overcrowded = attendance >= threshold
+
         n_positive = np.where(~overcrowded, attendance, 0)
         n_negative = np.where(overcrowded, attendance, 0)
-        
+
         assert all(n_positive == 0)
         assert all(n_negative == n_players)

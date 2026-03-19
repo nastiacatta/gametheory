@@ -509,3 +509,102 @@ def plot_recency_comparison(
         plt.close(fig)
     else:
         plt.show()
+
+
+def plot_static_payoff_vs_p(
+    df: pd.DataFrame,
+    threshold: int,
+    n_players: int,
+    output_path: Optional[Path] = None,
+) -> None:
+    """Plot mean payoff per player vs attendance probability p."""
+    p = df["p"].to_numpy()
+    payoff = df["mean_payoff_per_player"].to_numpy()
+    p_capacity = threshold / n_players
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(p, payoff, linewidth=1.5, label="Mean payoff per player")
+    plt.axvline(p_capacity, linestyle="--", color="gray", alpha=0.7,
+                label=f"p = L/n = {p_capacity:.3f}")
+    plt.axhline(0.0, linestyle=":", color="black", alpha=0.5)
+
+    plt.xlabel("Attendance probability p")
+    plt.ylabel("Mean payoff per player")
+    plt.title(f"Static game: payoff vs p (n={n_players}, L={threshold})")
+    plt.legend()
+    _finish_plot(output_path)
+
+
+def plot_static_attendance_vs_p(
+    df: pd.DataFrame,
+    threshold: int,
+    n_players: int,
+    output_path: Optional[Path] = None,
+) -> None:
+    """Plot mean attendance vs attendance probability p."""
+    p = df["p"].to_numpy()
+    attendance = df["mean_attendance"].to_numpy()
+    p_capacity = threshold / n_players
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(p, attendance, linewidth=1.5, label="Mean attendance")
+    plt.axhline(threshold, linestyle="--", color="gray", alpha=0.7,
+                label=f"L = {threshold}")
+    plt.axvline(p_capacity, linestyle=":", color="black", alpha=0.5,
+                label=f"p = L/n = {p_capacity:.3f}")
+
+    plt.xlabel("Attendance probability p")
+    plt.ylabel("Mean attendance")
+    plt.title(f"Static game: attendance vs p (n={n_players}, L={threshold})")
+    plt.legend()
+    _finish_plot(output_path)
+
+
+def plot_static_overcrowding_vs_p(
+    df: pd.DataFrame,
+    threshold: int,
+    output_path: Optional[Path] = None,
+) -> None:
+    """Plot overcrowding rate vs attendance probability p."""
+    p = df["p"].to_numpy()
+    overcrowding = df["overcrowding_rate"].to_numpy()
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(p, overcrowding, linewidth=1.5, label="Overcrowding rate")
+    plt.axhline(0.5, linestyle="--", color="gray", alpha=0.7, label="50%")
+
+    plt.xlabel("Attendance probability p")
+    plt.ylabel("Overcrowding rate (fraction with A > L)")
+    plt.title(f"Static game: overcrowding rate vs p (L={threshold})")
+    plt.legend()
+    _finish_plot(output_path)
+
+
+def plot_static_counts_vs_p(
+    df: pd.DataFrame,
+    threshold: int,
+    n_players: int,
+    output_path: Optional[Path] = None,
+) -> None:
+    """Plot mean number of players in each payoff bucket vs p."""
+    p = df["p"].to_numpy()
+    n_positive = df["mean_n_positive"].to_numpy()
+    n_negative = df["mean_n_negative"].to_numpy()
+    n_zero = df["mean_n_zero"].to_numpy()
+    p_capacity = threshold / n_players
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(p, n_positive, linewidth=1.5, color="green",
+             label="+1 (attended, not crowded)")
+    plt.plot(p, n_negative, linewidth=1.5, color="red",
+             label="-1 (attended, crowded)")
+    plt.plot(p, n_zero, linewidth=1.5, color="steelblue",
+             label="0 (stayed home)")
+    plt.axvline(p_capacity, linestyle="--", color="black", alpha=0.5,
+                label=f"p = L/n = {p_capacity:.3f}")
+
+    plt.xlabel("Attendance probability p")
+    plt.ylabel("Mean number of players")
+    plt.title(f"Static game: payoff decomposition vs p (n={n_players}, L={threshold})")
+    plt.legend()
+    _finish_plot(output_path)

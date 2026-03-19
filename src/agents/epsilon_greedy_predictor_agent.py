@@ -14,7 +14,7 @@ This is a simple exploration-exploitation balance that is easy to explain:
 
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -30,7 +30,7 @@ class EpsilonGreedyPredictorAgent(BaseAgent):
 
     def __init__(
         self,
-        predictors: Optional[List[Tuple[str, Predictor]]] = None,
+        predictors: list[tuple[str, Predictor]] | None = None,
         epsilon: float = 0.1,
     ) -> None:
         if predictors is None:
@@ -38,12 +38,12 @@ class EpsilonGreedyPredictorAgent(BaseAgent):
         if not (0.0 <= epsilon <= 1.0):
             raise ValueError("epsilon must be in [0, 1].")
 
-        self.predictor_names: List[str] = [name for name, _ in predictors]
-        self.predictors: List[Predictor] = [fn for _, fn in predictors]
-        self.scores: List[float] = [0.0] * len(self.predictors)
-        self._last_predictions: List[float] = [0.0] * len(self.predictors)
+        self.predictor_names: list[str] = [name for name, _ in predictors]
+        self.predictors: list[Predictor] = [fn for _, fn in predictors]
+        self.scores: list[float] = [0.0] * len(self.predictors)
+        self._last_predictions: list[float] = [0.0] * len(self.predictors)
         self._active_idx: int = 0
-        self.predictor_history: List[int] = []
+        self.predictor_history: list[int] = []
         self.epsilon: float = epsilon
 
     def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
@@ -76,6 +76,23 @@ class EpsilonGreedyPredictorAgent(BaseAgent):
         for j, pred in enumerate(self._last_predictions):
             self.scores[j] -= abs(pred - realised_attendance)
 
+    def reset(self) -> None:
+        """Reset scores and history for a new game."""
+        self.scores = [0.0] * len(self.predictors)
+        self._last_predictions = [0.0] * len(self.predictors)
+        self._active_idx = 0
+        self.predictor_history = []
+
     @property
     def active_predictor_name(self) -> str:
         return self.predictor_names[self._active_idx]
+
+    def snapshot(self) -> dict[str, Any]:
+        """Return agent state for exports."""
+        return {
+            "agent_type": self.__class__.__name__,
+            "epsilon": self.epsilon,
+            "predictor_names": list(self.predictor_names),
+            "scores": list(self.scores),
+            "active_predictor": self.active_predictor_name,
+        }

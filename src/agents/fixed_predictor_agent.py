@@ -29,32 +29,24 @@ class FixedPredictorAgent(BaseAgent):
     """
 
     def __init__(self, predictor_name: str, predictor_fn: Predictor) -> None:
-        """
-        Parameters
-        ----------
-        predictor_name : str
-            Human-readable name for reporting/snapshots.
-        predictor_fn : Predictor
-            Callable (history, n_players, threshold) -> float returning
-            predicted attendance for the next round.
+        """Initialize a fixed-predictor agent.
+
+        Args:
+            predictor_name: Human-readable name for reporting/snapshots.
+            predictor_fn: Callable (history, n_players, threshold) -> float
+                returning predicted attendance for the next round.
         """
         self.predictor_name = predictor_name
         self.predictor_fn = predictor_fn
 
     def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
-        """
-        Predict attendance and attend iff predicted_attendance <= threshold.
+        """Predict attendance and attend iff predicted_attendance <= threshold.
 
-        Parameters
-        ----------
-        context : RoundContext
-            Current game state including attendance history.
-        rng : np.random.Generator
-            Shared RNG (unused by this deterministic agent).
+        Args:
+            context: Current game state including attendance history.
+            rng: Shared RNG (unused by this deterministic agent).
 
-        Returns
-        -------
-        int
+        Returns:
             1 if attending, 0 if staying home.
         """
         _ = rng

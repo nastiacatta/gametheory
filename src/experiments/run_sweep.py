@@ -25,7 +25,6 @@ import itertools
 from pathlib import Path
 from typing import Any, Dict, List
 
-import numpy as np
 import pandas as pd
 
 from src.analysis.metrics import compute_all_metrics

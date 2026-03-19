@@ -1,36 +1,42 @@
 """
-Arthur-inspired predictor-selection agent with payoff-aligned virtual scores.
+Arthur-inspired predictor-selection agent with symmetric binary virtual payoff scoring.
 
 This agent keeps Arthur's "monitor all predictors, act on the currently best one"
-structure, but replaces forecast-error scoring with virtual payoff scoring.
-Each predictor is evaluated by the payoff it would have earned under the
-realised attendance, whether or not it was selected.
+structure, using virtual payoff scoring where each predictor is evaluated by the
+payoff it would have earned under the realised attendance, whether or not selected.
 
-This is closer to the Minority Game notion of virtual scores, where strategies
-are scored by whether they would have won, even if they were not actually played.
+This uses the "Symmetric Binary" virtual payoff convention, which is closer to
+Minority Game scoring where correctly predicting the minority wins:
 
-Virtual score update:
-    s_j <- s_j + u(a_j_pred, A_t)
+    Symmetric Binary Convention (this agent, SoftmaxPredictorAgent,
+    RecencyWeightedPredictorAgent, TurnoverPredictorAgent):
+        u(a, A) = +1  if a=1 and A<=L  (attended and not overcrowded)
+                = +1  if a=0 and A>L   (stayed home and was overcrowded)
+                = -1  otherwise
 
-where
-    a_j_pred = 1{ forecast_j <= threshold }
+    This rewards both correct attendance AND correct abstention.
 
-and, under the standard El Farol payoff convention,
-    u(a, A) = +1  if a=1 and A<=L  (attended and not overcrowded)
-            = +1  if a=0 and A>L   (stayed home and was overcrowded)
-            = -1  otherwise
+Compare with the El Farol / Weak-Threshold Convention (InductivePredictorAgent):
+        u(a, A) = +1  if a=1 and A<=L
+                = -1  if a=1 and A>L
+                =  0  if a=0  (stay home is always neutral)
 
-This differs from BestPredictorAgent which uses forecast-error scoring:
+    The El Farol convention treats staying home as a risk-free neutral option.
+
+Also compare with Forecast-Error Scoring (BestPredictorAgent, EpsilonGreedyPredictorAgent):
     s_j <- s_j - |forecast_j - A_t|
 
-The two answer different questions:
-- BestPredictorAgent: which predictor forecasts attendance best?
-- VirtualPayoffPredictorAgent: which predictor would have earned the best payoff?
+    This directly measures prediction accuracy rather than implied payoff.
+
+The different scoring rules answer different questions:
+- Forecast-error: which predictor forecasts attendance most accurately?
+- El Farol virtual payoff: which predictor makes the best attendance decisions?
+- Symmetric virtual payoff: which predictor best predicts the winning action?
 """
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -53,18 +59,18 @@ class VirtualPayoffPredictorAgent(BaseAgent):
 
     def __init__(
         self,
-        predictors: Optional[List[Tuple[str, Predictor]]] = None,
+        predictors: list[tuple[str, Predictor]] | None = None,
     ) -> None:
         if predictors is None:
             predictors = default_predictor_library()
 
-        self.predictor_names: List[str] = [name for name, _ in predictors]
-        self.predictors: List[Predictor] = [fn for _, fn in predictors]
+        self.predictor_names: list[str] = [name for name, _ in predictors]
+        self.predictors: list[Predictor] = [fn for _, fn in predictors]
 
-        self.scores: List[float] = [0.0] * len(self.predictors)
-        self._last_predictions: List[float] = [0.0] * len(self.predictors)
+        self.scores: list[float] = [0.0] * len(self.predictors)
+        self._last_predictions: list[float] = [0.0] * len(self.predictors)
         self._active_idx: int = 0
-        self.predictor_history: List[int] = []
+        self.predictor_history: list[int] = []
 
     def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
         predictions = [
@@ -121,5 +127,5 @@ class VirtualPayoffPredictorAgent(BaseAgent):
             "agent_type": self.__class__.__name__,
             "predictor_names": list(self.predictor_names),
             "scores": list(self.scores),
-            "active_predictor_name": self.active_predictor_name,
+            "active_predictor": self.active_predictor_name,
         }

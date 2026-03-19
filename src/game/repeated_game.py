@@ -2,8 +2,8 @@
 Repeated El Farol threshold game: same agents over m rounds, cumulative payoffs.
 
 Provides summary statistics, DataFrames for rounds/players, and optional
-CSV/plot output for report-ready analysis. Uses weak threshold payoff
-convention (A <= L for positive payoff).
+CSV/plot output for report-ready analysis. Uses strict threshold payoff
+convention (A < L for positive payoff).
 """
 
 from __future__ import annotations
@@ -71,19 +71,19 @@ class RepeatedGameResult:
         Build a DataFrame with round-level statistics.
 
         The theoretical_total_round_payoff column validates the simulation:
-            sum_i u_i(t) = A_t if A_t <= L, else -A_t
-        
+            sum_i u_i(t) = A_t if A_t < L, else -A_t
+
         Cumulative columns track running averages for report tables.
         """
         records = []
         cumulative_attendance = 0
         cumulative_overcrowded = 0
-        
+
         for round_result in self.rounds:
             cumulative_attendance += round_result.attendance
             cumulative_overcrowded += int(round_result.overcrowded)
             t = round_result.round_index + 1
-            
+
             deviation = round_result.attendance - self.threshold
             records.append(
                 {
@@ -98,7 +98,7 @@ class RepeatedGameResult:
                     "total_round_payoff": int(np.sum(round_result.payoffs)),
                     "theoretical_total_round_payoff": int(
                         round_result.attendance
-                        if round_result.attendance <= self.threshold
+                        if round_result.attendance < self.threshold
                         else -round_result.attendance
                     ),
                     "cumulative_mean_attendance": cumulative_attendance / t,
