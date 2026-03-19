@@ -283,11 +283,10 @@ metrics, equilibria calculations, and static probability sweeps.
 │   └── test_static_probability_sweep.py
 ├── docs/
 │   ├── game_definition.md      # Full mathematical definition
-│   ├── report_outline.md       # Suggested report structure
-│   └── genai_declaration.md
+│   └── report_outline.md       # Suggested report structure
 └── outputs/                    # Generated CSVs and figures (git-ignored)
 ```
 
 ## Licence and Use
 
-For academic use in line with coursework instructions. See `docs/genai_declaration.md` for generative-AI disclosure.
+For academic use in line with coursework instructions.
