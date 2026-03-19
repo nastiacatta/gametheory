@@ -521,12 +521,23 @@ def plot_static_payoff_vs_p(
     p = df["p"].to_numpy()
     payoff = df["mean_payoff_per_player"].to_numpy()
     p_capacity = threshold / n_players
+    best_idx = int(np.argmax(payoff))
+    p_best = float(p[best_idx])
+    payoff_best = float(payoff[best_idx])
 
     plt.figure(figsize=(10, 6))
     plt.plot(p, payoff, linewidth=1.5, label="Mean payoff per player")
+    plt.axvline(
+        p_best,
+        linestyle="--",
+        color="tab:green",
+        alpha=0.8,
+        label=f"best p = {p_best:.3f}",
+    )
     plt.axvline(p_capacity, linestyle="--", color="gray", alpha=0.7,
                 label=f"p = L/n = {p_capacity:.3f}")
     plt.axhline(0.0, linestyle=":", color="black", alpha=0.5)
+    plt.scatter([p_best], [payoff_best], color="tab:green", s=28, zorder=3)
 
     plt.xlabel("Attendance probability p")
     plt.ylabel("Mean payoff per player")

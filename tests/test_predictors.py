@@ -11,8 +11,9 @@ from src.agents.predictors import (
 )
 
 
-def test_mean_all_history_empty_returns_threshold():
-    assert mean_all_history((), 101, 60) == 60.0
+def test_mean_all_history_empty_returns_fallback():
+    """Empty history returns threshold - 1 (strict-threshold NE level)."""
+    assert mean_all_history((), 101, 60) == 59.0
 
 
 def test_mean_all_history_basic():

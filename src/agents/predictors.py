@@ -32,21 +32,27 @@ def _clip_prediction(value: float, n_players: int) -> float:
 
 
 def _fallback_threshold(history: tuple[int, ...], threshold: int) -> float:
-    """Default fallback when history is too short."""
-    return float(threshold)
+    """Default fallback when history is too short.
+
+    Returns threshold - 1, the pure-NE attendance level for the
+    strict-threshold game.  This ensures that in the first round
+    (empty history) agents attend rather than all staying home,
+    providing an informative learning signal from the start.
+    """
+    return float(max(threshold - 1, 0))
 
 
 def last_value(history: tuple[int, ...], n_players: int, threshold: int) -> float:
     """Predict same attendance as last round."""
     if not history:
-        return float(threshold)
+        return _fallback_threshold(history, threshold)
     return float(history[-1])
 
 
 def mirror(history: tuple[int, ...], n_players: int, threshold: int) -> float:
     """Contrarian: predict n - last_value (mirror around n/2)."""
     if not history:
-        return float(threshold)
+        return _fallback_threshold(history, threshold)
     return float(n_players - history[-1])
 
 
@@ -55,7 +61,7 @@ def make_rolling_mean(window: int = 4) -> Predictor:
 
     def predictor(history: tuple[int, ...], n_players: int, threshold: int) -> float:
         if not history:
-            return float(threshold)
+            return _fallback_threshold(history, threshold)
         recent = history[-window:]
         return sum(recent) / len(recent)
 
@@ -69,7 +75,7 @@ def make_linear_trend(window: int = 8) -> Predictor:
 
     def predictor(history: tuple[int, ...], n_players: int, threshold: int) -> float:
         if len(history) < 2:
-            return float(threshold)
+            return _fallback_threshold(history, threshold)
         recent = history[-window:]
         slope = (recent[-1] - recent[0]) / (len(recent) - 1)
         predicted = recent[-1] + slope
@@ -85,7 +91,7 @@ def make_lag_cycle(lag: int) -> Predictor:
 
     def predictor(history: tuple[int, ...], n_players: int, threshold: int) -> float:
         if len(history) < lag:
-            return float(threshold)
+            return _fallback_threshold(history, threshold)
         return float(history[-lag])
 
     predictor.__name__ = f"lag_cycle_{lag}"
