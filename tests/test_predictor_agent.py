@@ -116,7 +116,9 @@ class TestInductivePredictorAgentUpdates:
         agent.choose_action(ctx, rng)
         agent.update(ctx, action=1, realised_attendance=62, payoff=-1)
 
-        # p_low predicts 55 -> attend; A=62 > L -> -1. p_high predicts 70 -> stay home -> 0.
+        # A=62 > L=60 means overcrowded
+        # p_low predicts 55 -> attend; overcrowded -> -1
+        # p_high predicts 70 -> stay home -> 0
         assert agent.scores[0] == pytest.approx(-1.0)
         assert agent.scores[1] == pytest.approx(0.0)
 
@@ -135,7 +137,9 @@ class TestInductivePredictorAgentUpdates:
         agent.choose_action(ctx, rng)
         agent.update(ctx, action=1, realised_attendance=62, payoff=-1)
 
-        # p_low: attend, A>L -> -1. p_high: stay home -> 0.
+        # A=62 > L=60 means overcrowded
+        # p_low: attend, overcrowded -> -1
+        # p_high: stay home -> 0
         assert agent.scores[0] == pytest.approx(0.5 * (-4.0) + (-1.0))
         assert agent.scores[1] == pytest.approx(0.5 * (-6.0) + 0.0)
 

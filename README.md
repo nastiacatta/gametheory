@@ -166,7 +166,12 @@ $$s_j(t+1) = s_j(t) + \tilde{u}_j(t)$$
 
 $$s_j(t+1) = \lambda \cdot s_j(t) + \tilde{u}_j(t), \quad \lambda \in (0,1]$$
 
-where $\tilde{u}_j(t)$ is the virtual payoff predictor $j$ would have earned under realised attendance (attend and win: +1; attend and lose: -1; stay home: 0). Lower λ = faster forgetting of past performance.
+where $\tilde{u}_j(t)$ is the virtual payoff predictor $j$ would have earned:
+- attend and A ≤ L: +1
+- attend and A > L: -1
+- stay home: 0 (always)
+
+Lower λ = faster forgetting of past performance.
 
 Both modes use the same predictor bank, same action rule (hard argmax), and same repeated-game engine. The only difference is whether old predictor performance is exponentially forgotten.
 

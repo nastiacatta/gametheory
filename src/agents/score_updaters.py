@@ -1,7 +1,7 @@
 """
 Score update policies for inductive predictor agents.
 
-Weak-threshold convention:
+Weak-threshold virtual payoff convention:
 - attend and A <= L  -> +1
 - attend and A > L   -> -1
 - stay home          ->  0
@@ -42,10 +42,14 @@ def _virtual_payoff_from_prediction(
     realised_attendance: int,
     threshold: int,
 ) -> float:
+    """
+    Weak-threshold virtual payoff.
+
+    Staying home always yields 0.
+    Attending yields +1 if A <= L, -1 if A > L.
+    """
     implied_action = int(prediction <= threshold)
 
-    # Weak-threshold convention from src/game/payoff.py:
-    # staying home always yields 0.
     if implied_action == 0:
         return 0.0
 

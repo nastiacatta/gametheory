@@ -1,18 +1,15 @@
 """
-Predictor-score best-predictor agent (hard argmax) with virtual-payoff scoring.
+Predictor-score best-predictor agent (hard argmax) with cumulative absolute-error scoring.
 
-Each agent holds a bank of attendance predictors and a cumulative virtual
-payoff score for each. Every round it uses the predictor with the highest
-score to forecast attendance, then attends iff the forecast <= threshold.
+Each agent holds a bank of attendance predictors and a cumulative score
+for each. Every round it uses the predictor with the highest score to
+forecast attendance, then attends iff the forecast <= threshold.
 
 After the realised attendance is observed, all predictor scores are updated
-by the payoff they *would* have earned (virtual payoff):
-    score_j  <-  score_j  +  u(implied_action_j, A_t)
+using cumulative absolute forecast error:
+    score_j  <-  score_j  -  |forecast_j - A_t|
 
-where u = +1 if the implied action would have won, -1 otherwise.
-
-This is closer to the Minority Game notion of virtual scores, where strategies
-are scored by whether they would have won, even if they were not actually played.
+This answers the question: which predictor forecasts attendance best?
 """
 
 from __future__ import annotations
@@ -28,6 +25,7 @@ from src.agents.predictors import Predictor, default_predictor_library
 class BestPredictorAgent(BaseAgent):
     """
     Arthur-inspired predictor-selection agent: hard-argmax over predictor scores.
+    Uses cumulative absolute-error scoring.
     Ties are broken randomly (uniform selection among best candidates).
     """
 
@@ -67,16 +65,9 @@ class BestPredictorAgent(BaseAgent):
         realised_attendance: int,
         payoff: int,
     ) -> None:
-        _ = action, payoff
-        overcrowded = realised_attendance > context.threshold
+        _ = context, action, payoff
         for j, pred in enumerate(self._last_predictions):
-            implied_action = int(pred <= context.threshold)
-            hypothetical_payoff = (
-                1 if (implied_action == 1 and not overcrowded)
-                or (implied_action == 0 and overcrowded)
-                else -1
-            )
-            self.scores[j] += hypothetical_payoff
+            self.scores[j] -= abs(pred - realised_attendance)
 
     def reset(self) -> None:
         self.scores = [0.0] * len(self.predictors)

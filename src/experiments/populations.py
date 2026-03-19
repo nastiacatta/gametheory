@@ -16,6 +16,7 @@ from typing import List, Optional, Sequence, Tuple
 import numpy as np
 
 from src.agents.base import BaseAgent
+from src.agents.best_predictor_agent import BestPredictorAgent
 from src.agents.fixed_attendance_agent import FixedAttendanceAgent
 from src.agents.fixed_predictor_agent import FixedPredictorAgent
 from src.agents.predictor_agent import InductivePredictorAgent
@@ -23,6 +24,7 @@ from src.agents.predictors import Predictor, default_predictor_library, sample_p
 from src.agents.producer_agent import ProducerAgent
 from src.agents.random_agent import RandomAgent
 from src.agents.score_updaters import CumulativeScoreUpdater, RecencyScoreUpdater
+from src.agents.virtual_payoff_predictor_agent import VirtualPayoffPredictorAgent
 
 PredictorBank = List[Tuple[str, Predictor]]
 
@@ -345,4 +347,40 @@ def build_heterogeneous_fixed_predictor(
             predictor_fn=fn,
         )
         for name, fn in assignments
+    ]
+
+
+# === Scoring-rule comparison builders ===
+
+
+def build_best_predictor_from_banks(
+    predictor_banks: Sequence[PredictorBank],
+) -> List[BaseAgent]:
+    """
+    Build agents using cumulative absolute-error scoring from pre-sampled banks.
+
+    Score update: s_j(t+1) = s_j(t) - |forecast_j(t) - A_t|
+
+    Use with build_virtual_payoff_from_banks for matched comparison.
+    """
+    return [
+        BestPredictorAgent(predictors=list(bank))
+        for bank in predictor_banks
+    ]
+
+
+def build_virtual_payoff_from_banks(
+    predictor_banks: Sequence[PredictorBank],
+) -> List[BaseAgent]:
+    """
+    Build agents using symmetric virtual-payoff scoring from pre-sampled banks.
+
+    Score update: s_j(t+1) = s_j(t) + ũ_j(t)
+    where ũ = +1 if implied action would have won, -1 otherwise.
+
+    Use with build_best_predictor_from_banks for matched comparison.
+    """
+    return [
+        VirtualPayoffPredictorAgent(predictors=list(bank))
+        for bank in predictor_banks
     ]

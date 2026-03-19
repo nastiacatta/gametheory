@@ -463,3 +463,49 @@ def plot_paired_scoring_differences(
         plt.close(fig)
     else:
         plt.show()
+
+
+def plot_recency_comparison(
+    df: pd.DataFrame,
+    output_path: Optional[Path] = None,
+) -> None:
+    """
+    Paired difference plot across seeds: recency minus non_recency.
+
+    Expects columns:
+      delta_mean_payoff
+      delta_overcrowding_rate
+      delta_mad_from_threshold
+    """
+    metrics = [
+        ("delta_mean_payoff", r"$\Delta$ mean payoff"),
+        ("delta_overcrowding_rate", r"$\Delta$ overcrowding rate"),
+        ("delta_mad_from_threshold", r"$\Delta$ MAD from threshold"),
+    ]
+
+    fig, axes = plt.subplots(1, 3, figsize=(14, 5))
+
+    for ax, (col, label) in zip(axes, metrics):
+        x = df[col].to_numpy()
+        y = np.arange(len(x))
+        ax.scatter(x, y, s=24, alpha=0.7)
+        ax.axvline(0.0, linestyle="--", color="black", linewidth=1.0)
+        ax.set_ylabel("Seed index")
+        ax.set_xlabel(label)
+        
+        mean_val = x.mean()
+        ax.axvline(mean_val, linestyle="-", color="red", linewidth=1.5, alpha=0.7,
+                   label=f"Mean = {mean_val:.3f}")
+        ax.legend(loc="best", fontsize=9)
+
+    fig.suptitle(
+        "Recency minus non-recency (per matched seed)",
+        fontsize=13,
+    )
+    fig.tight_layout()
+
+    if output_path is not None:
+        fig.savefig(output_path, dpi=200, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
