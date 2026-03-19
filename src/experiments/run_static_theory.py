@@ -4,7 +4,7 @@ Generate static-game equilibrium analysis for the El Farol threshold game.
 Outputs a CSV with:
   - n_players
   - threshold
-  - pure_ne_count (C(n, L))
+  - pure_ne_count (C(n, L-1) under strict threshold)
   - mixed_p_star (symmetric mixed NE probability)
   - expected_attendance_under_mixed (n * p*)
 
