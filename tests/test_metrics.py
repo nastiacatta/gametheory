@@ -62,7 +62,7 @@ def test_stage_outcome_overcrowded_at_threshold() -> None:
 
 
 def test_stage_outcome_overcrowded_above_threshold() -> None:
-    """StageOutcome.overcrowded is True when attendance > threshold."""
+    """StageOutcome.overcrowded is True when attendance >= threshold."""
     actions = [1, 1, 1, 1]
     out = build_stage_outcome(actions, threshold=3)
     assert out.attendance == 4

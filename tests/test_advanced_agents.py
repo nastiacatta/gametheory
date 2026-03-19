@@ -155,10 +155,17 @@ class TestVirtualPayoffPredictorAgent:
     def test_attends_when_prediction_at_threshold(
         self, context_at_threshold: RoundContext, rng: np.random.Generator
     ) -> None:
-        library = default_predictor_library()
-        agent = VirtualPayoffPredictorAgent(predictors=[library[0]])
+        def predict_exact_threshold(
+            history: tuple[int, ...], n_players: int, threshold: int
+        ) -> float:
+            _ = history, n_players
+            return float(threshold)
+
+        agent = VirtualPayoffPredictorAgent(
+            predictors=[("exact_threshold", predict_exact_threshold)]
+        )
         action = agent.choose_action(context_at_threshold, rng)
-        assert action in (0, 1)
+        assert action == 0
 
     def test_reset_clears_state(self, context_at_threshold: RoundContext, rng: np.random.Generator) -> None:
         agent = VirtualPayoffPredictorAgent()

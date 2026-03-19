@@ -16,8 +16,8 @@ from src.analysis.metrics import overcrowding_rate
 from src.game.payoff import build_stage_outcome
 
 
-def test_overcrowding_includes_threshold_boundary() -> None:
-    """Overcrowding means A_t >= L (strict-threshold: A = L counts as overcrowded)."""
+def test_overcrowding_rate_is_strict_threshold() -> None:
+    """Overcrowding requires A_t >= L."""
     assert overcrowding_rate([59, 60, 61], 60) == 2 / 3
 
 
@@ -36,7 +36,7 @@ def test_stage_total_payoff_identity_above_threshold() -> None:
 
 
 def test_stage_total_payoff_identity_at_threshold() -> None:
-    """At exactly A = L, overcrowded under strict rule, so total = -A."""
+    """At exactly A = L, attendees lose under strict threshold."""
     stage = build_stage_outcome([1, 1, 1, 0, 0], threshold=3)
     assert stage.attendance == 3
     assert stage.overcrowded
@@ -79,12 +79,12 @@ def test_overcrowding_all_above() -> None:
         ([1, 1, 1], 2, True),
         ([1, 1, 0], 2, True),
         ([1, 1, 0], 1, True),
-        ([0, 0, 0], 0, True),
+        ([0, 0, 0], 1, False),
     ],
 )
 def test_overcrowded_flag_consistency(
     actions: list, threshold: int, expected_overcrowded: bool
 ) -> None:
-    """Verify overcrowded flag: A >= L under strict-threshold convention."""
+    """Verify overcrowded flag matches A >= L."""
     stage = build_stage_outcome(actions, threshold)
     assert stage.overcrowded == expected_overcrowded

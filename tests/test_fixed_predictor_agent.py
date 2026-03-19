@@ -35,7 +35,7 @@ class TestFixedPredictorAgent:
         assert action == 1
 
     def test_stay_when_prediction_above_threshold(self) -> None:
-        """Agent stays home when predicted attendance > threshold."""
+        """Agent stays home when predicted attendance >= threshold."""
         agent = FixedPredictorAgent("last_value", last_value)
         rng = np.random.default_rng(42)
 

@@ -152,7 +152,7 @@ This outline provides a suggested structure for the coursework report. Section h
 
 ### 8.2 Inductive (Adaptive) Results
 
-**Figures to include** (from `outputs/inductive_non_recency/` and `outputs/inductive_recency/`):
+**Figures to include** (from `outputs/inductive/non_recency/` and `outputs/inductive/recency/`):
 - `attendance.png`: Attendance per round (expected: oscillating around \(L = 60\))
 - `cum_avg_attendance.png`: Cumulative mean converging toward threshold
 - `predictor_share.png`: Predictor usage over time
@@ -250,7 +250,7 @@ Discuss how the model abstracts these scenarios and what insights transfer.
 **Regeneration commands:**
 ```bash
 python -m src.experiments.run_repeated_baselines --n_rounds 200 --output_dir outputs/baselines
-python -m src.experiments.run_inductive --mode non_recency --predictors_per_agent 6 --n_rounds 200 --output_dir outputs/inductive_non_recency
-python -m src.experiments.run_inductive --mode recency --lambda_decay 0.95 --predictors_per_agent 6 --n_rounds 200 --output_dir outputs/inductive_recency
+python -m src.experiments.run_inductive --mode non_recency --predictors_per_agent 6 --n_rounds 200 --output_dir outputs/inductive
+python -m src.experiments.run_inductive --mode recency --lambda_decay 0.95 --predictors_per_agent 6 --n_rounds 200 --output_dir outputs/inductive
 python -m src.experiments.run_heterogeneous --mode producer_speculator --n_producers 50 --n_rounds 200 --output_dir outputs/heterogeneous
 ```

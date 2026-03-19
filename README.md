@@ -107,12 +107,14 @@ python -m src.experiments.run_static_theory --n_players 101 --threshold 60
 python -m src.experiments.run_case_study --n_rounds 200 --output_dir outputs/case_study
 ```
 
-Outputs (CSVs and figures) are written to `--output_dir`. The repeated runner writes:
+Outputs (CSVs and figures) are written to `--output_dir`.
 
-- `rounds.csv`: round-by-round attendance, deviations, overcrowding, mean payoff, cumulative metrics
-- `players.csv`: player-level cumulative payoffs, agent types, attend rates
-- `summary.csv`: summary metrics (threshold-centred deviation measures)
-- Plots: `attendance.png`, `attendance_deviation.png`, `cum_avg_attendance.png`, etc.
+- **Inductive runner (`python -m src.experiments.run_inductive`)** writes into `Path(output_dir) / mode`:
+  - `rounds.csv`, `players.csv`, `summary.csv`
+  - Plots: `attendance.png`, `attendance_deviation.png`, `cum_avg_attendance.png`, etc.
+- **Repeated game engine (`RepeatedGameResult.save_outputs`)** writes:
+  - `repeated_rounds.csv`, `repeated_players.csv`, `repeated_summary.csv`
+  - Plots: `attendance_over_time.png`, `attendance_deviation_over_time.png`, `cumulative_average_attendance.png`, etc.
 
 ## Game Definition (Strict Threshold)
 
