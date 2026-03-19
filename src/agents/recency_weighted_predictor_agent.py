@@ -7,8 +7,8 @@ over time, making the agent more responsive to recent performance.
 Score update rule (virtual payoff with decay):
     s_{ij}(t+1) = lambda * s_{ij}(t) + u(implied_action_j, A_t)
 
-where lambda in (0, 1] is the decay factor, and u = +1 if the implied
-action would have won, -1 otherwise.
+where lambda in (0, 1] is the decay factor, and u follows the strict-threshold
+game payoff: +1 if attend and A < L, -1 if attend and A >= L, 0 if stay home.
 
 Lower lambda means faster forgetting of past performance and quicker
 adaptation to regime changes.
@@ -114,11 +114,10 @@ class RecencyWeightedPredictorAgent(BaseAgent):
         for j, pred in enumerate(self._last_predictions):
             decayed = self.lambda_decay * self.scores[j]
             implied_action = int(pred < context.threshold)
-            hypothetical_payoff = (
-                1 if (implied_action == 1 and not overcrowded)
-                or (implied_action == 0 and overcrowded)
-                else -1
-            )
+            if implied_action == 0:
+                hypothetical_payoff = 0
+            else:
+                hypothetical_payoff = 1 if not overcrowded else -1
             self.scores[j] = decayed + hypothetical_payoff
 
     @property

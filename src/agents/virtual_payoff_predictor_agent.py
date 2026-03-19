@@ -1,37 +1,19 @@
 """
-Arthur-inspired predictor-selection agent with symmetric binary virtual payoff scoring.
+Arthur-inspired predictor-selection agent with virtual-payoff scoring.
 
 This agent keeps Arthur's "monitor all predictors, act on the currently best one"
 structure, using virtual payoff scoring where each predictor is evaluated by the
 payoff it would have earned under the realised attendance, whether or not selected.
 
-This uses the "Symmetric Binary" virtual payoff convention, which is closer to
-Minority Game scoring where correctly predicting the minority wins:
+Virtual payoff follows the strict-threshold game payoff:
+    u(a, A) = +1  if a=1 and A<L   (attended, not overcrowded)
+            = -1  if a=1 and A>=L  (attended, overcrowded)
+            =  0  if a=0           (stayed home)
 
-    Symmetric Binary Convention (this agent, SoftmaxPredictorAgent,
-    RecencyWeightedPredictorAgent, TurnoverPredictorAgent):
-        u(a, A) = +1  if a=1 and A<L   (attended and not overcrowded)
-                = +1  if a=0 and A>=L  (stayed home and was overcrowded)
-                = -1  otherwise
-
-    This rewards both correct attendance AND correct abstention.
-
-Compare with the El Farol / Strict-Threshold Convention (InductivePredictorAgent):
-        u(a, A) = +1  if a=1 and A<L
-                = -1  if a=1 and A>=L
-                =  0  if a=0  (stay home is always neutral)
-
-    The El Farol convention treats staying home as a risk-free neutral option.
-
-Also compare with Forecast-Error Scoring (BestPredictorAgent, EpsilonGreedyPredictorAgent):
-    s_j <- s_j - |forecast_j - A_t|
-
-    This directly measures prediction accuracy rather than implied payoff.
-
-The different scoring rules answer different questions:
-- Forecast-error: which predictor forecasts attendance most accurately?
-- El Farol virtual payoff: which predictor makes the best attendance decisions?
-- Symmetric virtual payoff: which predictor best predicts the winning action?
+This matches the game's own payoff function where the outside option is
+always neutral. Unlike forecast-error scoring (BestPredictorAgent), this
+rewards predictions that would have led to profitable actions rather than
+accurate attendance forecasts.
 """
 
 from __future__ import annotations
@@ -103,12 +85,10 @@ class VirtualPayoffPredictorAgent(BaseAgent):
         for j, pred in enumerate(self._last_predictions):
             implied_action = int(pred < context.threshold)
 
-            hypothetical_payoff = (
-                1
-                if (implied_action == 1 and not overcrowded)
-                or (implied_action == 0 and overcrowded)
-                else -1
-            )
+            if implied_action == 0:
+                hypothetical_payoff = 0
+            else:
+                hypothetical_payoff = 1 if not overcrowded else -1
 
             self.scores[j] += hypothetical_payoff
 

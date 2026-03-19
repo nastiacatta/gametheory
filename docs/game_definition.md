@@ -172,15 +172,51 @@ $$
 \hat{A}_{ij}(t) = f_{ij}(H_t).
 $$
 
-**Score updating:** Predictors accumulate accuracy scores:
+### 4.2 Score Updating Rules
+
+The implementation provides two scoring rules for predictor evaluation.
+
+**Forecast-error scoring** (used by `BestPredictorAgent`, `EpsilonGreedyPredictorAgent`):
 
 $$
 s_{ij}(t+1) = s_{ij}(t) - \lvert \hat{A}_{ij}(t) - A_t \rvert.
 $$
 
-Higher scores indicate better historical accuracy.
+Higher scores indicate better historical forecast accuracy. This rule asks: *which predictor forecasts attendance most accurately?*
 
-### 4.2 Selection Rules
+**Virtual-payoff scoring** (used by `VirtualPayoffPredictorAgent`, `SoftmaxPredictorAgent`, `InductivePredictorAgent`, `RecencyWeightedPredictorAgent`, `TurnoverPredictorAgent`):
+
+$$
+s_{ij}(t+1) = s_{ij}(t) + \tilde{u}_{ij}(t),
+$$
+
+where $\tilde{u}_{ij}(t)$ is the payoff the predictor's implied action would have earned under the strict-threshold game payoff:
+
+$$
+\tilde{u}_{ij}(t) =
+\begin{cases}
++1 & \text{if implied attend and } A_t < L, \\
+-1 & \text{if implied attend and } A_t \ge L, \\
+0 & \text{if implied stay home}.
+\end{cases}
+$$
+
+The implied action is attend if $\hat{A}_{ij}(t) < L$, stay home otherwise. This matches the game's own payoff function, where the outside option is always neutral.
+
+**Recency-weighted scoring** applies exponential decay to either rule:
+
+$$
+s_{ij}(t+1) = \lambda \cdot s_{ij}(t) + \Delta_j(t), \qquad \lambda \in (0, 1],
+$$
+
+where $\Delta_j(t)$ is either $-|\hat{A}_{ij}(t) - A_t|$ (forecast-error) or $\tilde{u}_{ij}(t)$ (virtual-payoff).
+
+Lower $\lambda$ means faster forgetting of past performance, allowing quicker adaptation to regime changes.
+
+- $\lambda = 1$: equivalent to cumulative scoring (no decay).
+- $\lambda < 1$: recent performance weighted more heavily.
+
+### 4.3 Selection Rules
 
 **Best-predictor (hard argmax):**
 
@@ -197,25 +233,12 @@ $$
 \Pr(j \mid t) = \frac{\exp(\beta \, s_{ij}(t))}{\sum_{\ell} \exp(\beta \, s_{i\ell}(t))},
 $$
 
-where $\beta \ge 0$ is the inverse temperature. The agent attends if the selected predictor forecasts attendance at most $L$.
+where $\beta \ge 0$ is the inverse temperature. The agent attends if the selected predictor forecasts attendance strictly below $L$.
 
 - $\beta = 0$: uniform random selection (pure exploration).
 - $\beta \to \infty$: hard argmax (pure exploitation).
 
-**Recency-weighted (exponential forgetting):**
-
-An alternative scoring rule replaces cumulative accuracy with exponentially-decayed scores:
-
-$$
-s_{ij}(t+1) = \lambda \cdot s_{ij}(t) - \lvert \hat{A}_{ij}(t) - A_t \rvert, \qquad \lambda \in (0, 1].
-$$
-
-Lower $\lambda$ means faster forgetting of past performance, allowing quicker adaptation to regime changes. Predictor selection can use either hard argmax or softmax over the decayed scores.
-
-- $\lambda = 1$: equivalent to cumulative scoring (no decay).
-- $\lambda < 1$: recent forecast accuracy weighted more heavily.
-
-### 4.3 Terminology Note
+### 4.4 Terminology Note
 
 The predictors in this implementation are described as **Arthur-inspired** or **inductive heuristics**. We do not claim that Arthur (1994) specified a fixed canonical list of predictors. The master library (see `src/agents/predictors.py`) includes:
 
@@ -238,7 +261,7 @@ The El Farol threshold game implemented here is related to but distinct from the
 | Feature | This Implementation | Canonical MG |
 |---------|---------------------|--------------|
 | Action space | $\{0, 1\}$ (attend/stay) | $\{-1, +1\}$ (symmetric) |
-| Payoff | Threshold-based ($A \le L$) | Sign of $-a_i \cdot A$ |
+| Payoff | Threshold-based ($A < L$) | Sign of $-a_i \cdot A$ |
 | Memory | Attendance history | Binary outcome history of length $M$ |
 | Strategy space | Predictor library | $2^{2^M}$ lookup tables |
 | Control parameter | Threshold $L$ | $\alpha = 2^M / N$ |
@@ -334,7 +357,7 @@ When "volatility" is reported, it refers to $\sigma_L^2$ (threshold-deviation vo
 
 ### 7.2 Theoretical Limitations
 
-1. **No equilibrium selection.** With $\binom{n}{L}$ pure-strategy NE, we do not address which equilibrium might emerge from learning dynamics.
+1. **No equilibrium selection.** With $\binom{n}{L-1}$ pure-strategy NE, we do not address which equilibrium might emerge from learning dynamics.
 
 2. **No convergence guarantees.** The inductive strategies are heuristics without proven convergence to Nash equilibrium or correlated equilibrium.
 

@@ -22,10 +22,10 @@ run-baselines:
 	python -m src.experiments.run_repeated_baselines --n_rounds 200 --output_dir outputs/baselines
 
 run-inductive:
-	python -m src.experiments.run_inductive --mode best --n_rounds 200 --output_dir outputs/inductive
+	python -m src.experiments.run_inductive --mode recency --n_rounds 200 --output_dir outputs/inductive
 
 run-heterogeneous:
-	python -m src.experiments.run_heterogeneous --mode mix --n_rounds 200 --output_dir outputs/heterogeneous
+	python -m src.experiments.run_heterogeneous --mode mix --p_best 0.5 --p_softmax 0.5 --p_random 0.0 --n_rounds 200 --output_dir outputs/heterogeneous
 
 clean:
 	rm -rf __pycache__ src/__pycache__ src/agents/__pycache__ src/game/__pycache__ tests/__pycache__

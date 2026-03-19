@@ -12,10 +12,11 @@ of inductive reasoning:
 Score update (virtual payoff with decay):
     s_{ij}(t+1) = lambda * s_{ij}(t) + u(implied_action_j, A_t)
 
-where u = +1 if the implied action would have won, -1 otherwise.
+where u follows the strict-threshold game payoff:
+    +1 if attend and A < L, -1 if attend and A >= L, 0 if stay home.
 
 Turnover rule:
-    If active predictor would have earned -1 payoff for `patience`
+    If active predictor would have earned non-positive payoff for `patience`
     consecutive rounds, replace the worst-scoring predictor with a
     fresh sample from the master library.
 
@@ -45,9 +46,7 @@ class TurnoverPredictorAgent(BaseAgent):
         predictors: list[tuple[str, Predictor]] | None = None,
         lambda_decay: float = 0.95,
         patience: int = 10,
-        error_threshold: float = 5.0,
         master_library: list[tuple[str, Predictor]] | None = None,
-        seed: int | None = None,
     ) -> None:
         """Initialize turnover predictor agent.
         
@@ -55,9 +54,7 @@ class TurnoverPredictorAgent(BaseAgent):
             predictors: Initial predictor bank (name, callable pairs).
             lambda_decay: Score decay factor in (0, 1].
             patience: Consecutive failures before triggering replacement.
-            error_threshold: Prediction error threshold for counting as failure.
             master_library: Full library to sample replacements from.
-            seed: Random seed for reproducible predictor replacement.
         """
         if predictors is None:
             predictors = default_predictor_library()[:6]
@@ -67,17 +64,13 @@ class TurnoverPredictorAgent(BaseAgent):
             raise ValueError("lambda_decay must be in (0, 1]")
         if patience < 1:
             raise ValueError("patience must be at least 1")
-        if error_threshold < 0:
-            raise ValueError("error_threshold must be non-negative")
         
         self.predictor_names: list[str] = [name for name, _ in predictors]
         self.predictors: list[Predictor] = [fn for _, fn in predictors]
         self.lambda_decay: float = lambda_decay
         self.patience: int = patience
-        self.error_threshold: float = error_threshold
         self.master_library: list[tuple[str, Predictor]] = master_library
-        self._seed: int | None = seed
-        self._rng: np.random.Generator = np.random.default_rng(seed)
+        self._last_rng: np.random.Generator | None = None
         
         self.scores: list[float] = [0.0] * len(self.predictors)
         self._last_predictions: list[float] = [0.0] * len(self.predictors)
@@ -97,7 +90,7 @@ class TurnoverPredictorAgent(BaseAgent):
         self._replacements_count = 0
         self.predictor_history = []
         self.replacement_events = []
-        self._rng = np.random.default_rng(self._seed)
+        self._last_rng = None
 
     def _get_unused_predictor(self, rng: np.random.Generator) -> tuple[str, Predictor] | None:
         """Sample a predictor from master library not currently in use."""
@@ -129,6 +122,8 @@ class TurnoverPredictorAgent(BaseAgent):
         return True
 
     def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
+        self._last_rng = rng
+        
         predictions = [
             p(context.attendance_history, context.n_players, context.threshold)
             for p in self.predictors
@@ -159,29 +154,27 @@ class TurnoverPredictorAgent(BaseAgent):
         for j, pred in enumerate(self._last_predictions):
             decayed = self.lambda_decay * self.scores[j]
             implied_action = int(pred < context.threshold)
-            hypothetical_payoff = (
-                1 if (implied_action == 1 and not overcrowded)
-                or (implied_action == 0 and overcrowded)
-                else -1
-            )
+            if implied_action == 0:
+                hypothetical_payoff = 0
+            else:
+                hypothetical_payoff = 1 if not overcrowded else -1
             self.scores[j] = decayed + hypothetical_payoff
         
         active_pred = self._last_predictions[self._active_idx]
         active_implied = int(active_pred < context.threshold)
-        active_payoff = (
-            1 if (active_implied == 1 and not overcrowded)
-            or (active_implied == 0 and overcrowded)
-            else -1
-        )
+        if active_implied == 0:
+            active_payoff = 0
+        else:
+            active_payoff = 1 if not overcrowded else -1
         
-        if active_payoff == -1:
+        if active_payoff <= 0:
             self._consecutive_failures += 1
         else:
             self._consecutive_failures = 0
         
         if self._consecutive_failures >= self.patience:
             round_idx = len(self.predictor_history) - 1
-            if self._replace_worst_predictor(self._rng):
+            if self._last_rng is not None and self._replace_worst_predictor(self._last_rng):
                 self.replacement_events.append(round_idx)
             self._consecutive_failures = 0
 
@@ -199,7 +192,6 @@ class TurnoverPredictorAgent(BaseAgent):
             "agent_type": self.__class__.__name__,
             "lambda_decay": self.lambda_decay,
             "patience": self.patience,
-            "error_threshold": self.error_threshold,
             "active_predictor": self.active_predictor_name,
             "n_replacements": self.n_replacements,
             "current_predictors": list(self.predictor_names),

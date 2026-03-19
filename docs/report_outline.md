@@ -61,10 +61,13 @@ This outline provides a suggested structure for the coursework report. Section h
 ### 4.1 Predictor-Based Framework
 - Each agent holds \(k\) predictors sampled from a master library.
 - Forecasts: \(\hat{A}_{ij}(t) = f_{ij}(H_t)\).
-- Score updating: \(s_{ij}(t+1) = s_{ij}(t) - |\hat{A}_{ij}(t) - A_t|\).
+- Two scoring rules:
+  - **Forecast-error:** \(s_{ij}(t+1) = s_{ij}(t) - |\hat{A}_{ij}(t) - A_t|\) (BestPredictor, EpsilonGreedy).
+  - **Virtual-payoff:** \(s_{ij}(t+1) = s_{ij}(t) + \tilde{u}_{ij}(t)\), where \(\tilde{u}\) is the game payoff the implied action would have earned (VirtualPayoff, Softmax, Recency, Turnover, Inductive).
+- Virtual payoff matches the stage game: attend + \(A < L\) → +1, attend + \(A \ge L\) → −1, stay home → 0.
 
 ### 4.2 Selection Mechanisms
-- **Best-predictor (argmax):** deterministic selection of highest-scoring predictor.
+- **Best-predictor (argmax):** deterministic selection of highest-scoring predictor. Ties broken randomly.
 - **Softmax:** stochastic selection with inverse temperature \(\beta\).
 
 ### 4.3 Arthur-Inspired Heuristics
@@ -149,7 +152,7 @@ This outline provides a suggested structure for the coursework report. Section h
 
 ### 8.2 Inductive (Adaptive) Results
 
-**Figures to include** (from `outputs/inductive_best/` and `outputs/inductive_softmax/`):
+**Figures to include** (from `outputs/inductive_non_recency/` and `outputs/inductive_recency/`):
 - `attendance.png`: Attendance per round (expected: oscillating around \(L = 60\))
 - `cum_avg_attendance.png`: Cumulative mean converging toward threshold
 - `predictor_share.png`: Predictor usage over time
@@ -163,18 +166,18 @@ This outline provides a suggested structure for the coursework report. Section h
 
 ### 8.3 Baseline vs Inductive Comparison
 
-| Metric | Baseline | Best-Predictor | Softmax |
-|--------|----------|----------------|---------|
-| Mean attendance | 78.6 | 59.8 | 60.0 |
-| Overcrowding rate | 100% | 53.5% | 51.5% |
-| Mean cumulative payoff | -155.7 | -40.5 | -38.3 |
-| Variance from threshold | 359.2 | 387.6 | 455.2 |
+| Metric | Baseline | Non-Recency | Recency |
+|--------|----------|-------------|---------|
+| Mean attendance | ~78.6 | ~60 | ~60 |
+| Overcrowding rate | 100% | ~50% | ~50% |
+| Mean cumulative payoff | ~-156 | ~-40 | ~-40 |
+| Variance from threshold | ~359 | varies | varies |
 
 **Discussion:**
 - Adaptive agents converge toward the threshold attendance (\(L = 60\)), matching Arthur's prediction
 - Non-adaptive populations consistently overcrowd, demonstrating coordination failure
 - Higher variance for inductive runs reflects the oscillatory nature of adaptive coordination
-- Softmax selection achieves slightly better payoffs due to exploration-exploitation balance
+- Recency weighting may allow quicker adaptation to regime changes
 
 ### 8.4 Coordination Efficiency
 - Overcrowding frequency: compare 100% (baseline) vs ~50% (inductive)
@@ -240,14 +243,14 @@ Discuss how the model abstracts these scenarios and what insights transfer.
 | Experiment | Output Directory | Key Figures |
 |------------|------------------|-------------|
 | Baseline (non-adaptive) | `outputs/baselines/` | `attendance_over_time.png`, `cumulative_average_attendance.png` |
-| Best-predictor inductive | `outputs/inductive_best/` | `attendance.png`, `cum_avg_attendance.png`, `predictor_share.png`, `payoff_hist.png` |
-| Softmax inductive | `outputs/inductive_softmax/` | `attendance.png`, `cum_avg_attendance.png`, `predictor_share.png`, `payoff_hist.png` |
+| Non-recency inductive | `outputs/inductive/non_recency/` | `attendance.png`, `cum_avg_attendance.png`, `predictor_share.png`, `payoff_hist.png` |
+| Recency inductive | `outputs/inductive/recency/` | `attendance.png`, `cum_avg_attendance.png`, `predictor_share.png`, `payoff_hist.png` |
 | Heterogeneous (producer-speculator) | `outputs/heterogeneous/` | `attendance.png`, `cum_avg_attendance.png`, `payoff_hist.png` |
 
 **Regeneration commands:**
 ```bash
 python -m src.experiments.run_repeated_baselines --n_rounds 200 --output_dir outputs/baselines
-python -m src.experiments.run_inductive --mode best --n_rounds 200 --output_dir outputs/inductive_best
-python -m src.experiments.run_inductive --mode softmax --beta 1.0 --n_rounds 200 --output_dir outputs/inductive_softmax
+python -m src.experiments.run_inductive --mode non_recency --predictors_per_agent 6 --n_rounds 200 --output_dir outputs/inductive_non_recency
+python -m src.experiments.run_inductive --mode recency --lambda_decay 0.95 --predictors_per_agent 6 --n_rounds 200 --output_dir outputs/inductive_recency
 python -m src.experiments.run_heterogeneous --mode producer_speculator --n_producers 50 --n_rounds 200 --output_dir outputs/heterogeneous
 ```

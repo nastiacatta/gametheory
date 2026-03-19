@@ -250,21 +250,21 @@ def run_heterogeneous(args: argparse.Namespace) -> None:
     )
 
     if args.mode == "mix":
-        lambda_decay = args.lambda_decay if args.use_recency else None
         agents = build_heterogeneous(
             config.n_players,
-            p_inductive=args.p_inductive,
+            p_best=args.p_best,
+            p_softmax=args.p_softmax,
             p_random=args.p_random,
-            lambda_decay=lambda_decay,
+            beta=args.beta,
             predictors_per_agent=args.predictors_per_agent,
             seed=config.seed,
         )
     elif args.mode == "producer_speculator":
-        lambda_decay = args.lambda_decay if args.use_recency else None
         agents = build_producer_speculator(
             config.n_players,
             n_producers=args.n_producers,
-            lambda_decay=lambda_decay,
+            speculator_type=args.speculator_type,
+            beta=args.beta,
             predictors_per_agent=args.predictors_per_agent,
             seed=config.seed,
             producer_base_prediction=args.producer_base_prediction,
@@ -445,13 +445,14 @@ def build_parser() -> argparse.ArgumentParser:
     hetero_parser.add_argument("--seed", type=int, default=42)
     hetero_parser.add_argument("--output_dir", type=str, default="outputs/heterogeneous")
     hetero_parser.add_argument("--predictors_per_agent", type=int, default=6)
-    hetero_parser.add_argument("--lambda_decay", type=float, default=0.95, help="Score decay (if use_recency)")
-    hetero_parser.add_argument("--use_recency", action="store_true", help="Use recency scoring for inductive agents")
-    hetero_parser.add_argument("--p_inductive", type=float, default=0.8)
-    hetero_parser.add_argument("--p_random", type=float, default=0.2)
-    hetero_parser.add_argument("--n_producers", type=int, default=50)
-    hetero_parser.add_argument("--producer_base_prediction", type=float, default=None)
-    hetero_parser.add_argument("--producer_noise_std", type=float, default=5.0)
+    hetero_parser.add_argument("--p_best", type=float, default=0.4, help="Share of best-predictor agents (mix mode)")
+    hetero_parser.add_argument("--p_softmax", type=float, default=0.4, help="Share of softmax agents (mix mode)")
+    hetero_parser.add_argument("--p_random", type=float, default=0.2, help="Share of random agents (mix mode)")
+    hetero_parser.add_argument("--beta", type=float, default=1.0, help="Inverse temperature for softmax agents")
+    hetero_parser.add_argument("--n_producers", type=int, default=50, help="Number of producers (producer_speculator mode)")
+    hetero_parser.add_argument("--speculator_type", choices=["best", "softmax"], default="best", help="Speculator agent type")
+    hetero_parser.add_argument("--producer_base_prediction", type=float, default=None, help="Producer base prediction (defaults to threshold)")
+    hetero_parser.add_argument("--producer_noise_std", type=float, default=5.0, help="Producer noise standard deviation")
 
     # === sweep ===
     sweep_parser = subparsers.add_parser("sweep", help="Multi-seed parameter sweep")

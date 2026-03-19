@@ -170,7 +170,7 @@ class TestVirtualPayoffPredictorAgent:
         assert len(agent.predictor_history) == 0
         assert all(s == 0.0 for s in agent.scores)
 
-    def test_update_uses_symmetric_virtual_payoff(
+    def test_update_uses_game_payoff_virtual_scoring(
         self, context_at_threshold: RoundContext, rng: np.random.Generator
     ) -> None:
         agent = VirtualPayoffPredictorAgent()
@@ -179,7 +179,7 @@ class TestVirtualPayoffPredictorAgent:
         agent.update(context_at_threshold, 1, 55, 1)
         
         for s in agent.scores:
-            assert s in (-1.0, 1.0)
+            assert s in (-1.0, 0.0, 1.0)
 
     def test_snapshot_contains_expected_keys(self) -> None:
         agent = VirtualPayoffPredictorAgent()
@@ -277,7 +277,7 @@ class TestTurnoverPredictorAgent:
 
     def test_initialization_custom(self) -> None:
         agent = TurnoverPredictorAgent(
-            lambda_decay=0.8, patience=5, seed=123
+            lambda_decay=0.8, patience=5
         )
         assert agent.lambda_decay == 0.8
         assert agent.patience == 5
@@ -298,7 +298,7 @@ class TestTurnoverPredictorAgent:
         assert action in (0, 1)
 
     def test_predictor_replacement_on_consecutive_failures(self) -> None:
-        agent = TurnoverPredictorAgent(patience=2, seed=42)
+        agent = TurnoverPredictorAgent(patience=2)
         rng = np.random.default_rng(42)
         
         context = RoundContext(
@@ -315,8 +315,8 @@ class TestTurnoverPredictorAgent:
         
         assert agent.n_replacements >= 0
 
-    def test_reset_clears_state_and_reinitializes_rng(self) -> None:
-        agent = TurnoverPredictorAgent(seed=42)
+    def test_reset_clears_state(self) -> None:
+        agent = TurnoverPredictorAgent()
         
         agent.scores[0] = 5.0
         agent.predictor_history.append(0)
@@ -329,11 +329,11 @@ class TestTurnoverPredictorAgent:
         assert agent._consecutive_failures == 0
         assert agent.n_replacements == 0
 
-    def test_reproducibility_with_seed(
+    def test_reproducibility_with_same_rng_seed(
         self, context_at_threshold: RoundContext
     ) -> None:
-        agent1 = TurnoverPredictorAgent(seed=42)
-        agent2 = TurnoverPredictorAgent(seed=42)
+        agent1 = TurnoverPredictorAgent()
+        agent2 = TurnoverPredictorAgent()
         rng1 = np.random.default_rng(123)
         rng2 = np.random.default_rng(123)
         

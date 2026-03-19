@@ -2,7 +2,7 @@
 Tests for mathematical consistency across the codebase.
 
 Verifies:
-1. Overcrowding rate uses weak inequality (A_t >= L)
+1. Overcrowding uses A_t >= L (strict-threshold convention)
 2. Total payoff identity: sum_i u_i = A if A < L, else -A
 3. Theoretical benchmark formulas match expected values
 """
@@ -17,7 +17,7 @@ from src.game.payoff import build_stage_outcome
 
 
 def test_overcrowding_rate_is_weakly_inclusive() -> None:
-    """Overcrowding requires A_t >= L under strict-threshold convention."""
+    """Overcrowding means A_t >= L (strict-threshold: A = L counts as overcrowded)."""
     assert overcrowding_rate([59, 60, 61], 60) == 2 / 3
 
 
@@ -85,6 +85,6 @@ def test_overcrowding_all_above() -> None:
 def test_overcrowded_flag_consistency(
     actions: list, threshold: int, expected_overcrowded: bool
 ) -> None:
-    """Verify overcrowded flag matches weak inequality A >= L."""
+    """Verify overcrowded flag: A >= L under strict-threshold convention."""
     stage = build_stage_outcome(actions, threshold)
     assert stage.overcrowded == expected_overcrowded

@@ -1,8 +1,7 @@
 """
 Temperature-based predictor-selection agent with virtual-payoff scoring.
 
-Same predictor bank and scoring as BestPredictorAgent, but the active
-predictor is chosen stochastically via a Boltzmann / softmax distribution:
+Predictor is chosen stochastically via a Boltzmann / softmax distribution:
 
     P(j | t) = exp(beta * score_j) / sum_k exp(beta * score_k)
 
@@ -11,9 +10,13 @@ beta -> inf  =>  hard argmax         (pure exploitation)
 
 Agent attends iff the chosen predictor forecasts attendance < threshold.
 
-Scores are updated using virtual payoff: each predictor is scored by the
-payoff it would have earned under the realised attendance, whether or not
-it was selected.
+Scores are updated using strict-threshold virtual payoff matching the
+game payoff: each predictor is scored by the payoff its implied action
+would have earned under the realised attendance.
+
+    attend + A < L  -> +1
+    attend + A >= L -> -1
+    stay home       ->  0  (neutral outside option)
 """
 
 from __future__ import annotations
@@ -76,11 +79,10 @@ class SoftmaxPredictorAgent(BaseAgent):
         overcrowded = realised_attendance >= context.threshold
         for j, pred in enumerate(self._last_predictions):
             implied_action = int(pred < context.threshold)
-            hypothetical_payoff = (
-                1 if (implied_action == 1 and not overcrowded)
-                or (implied_action == 0 and overcrowded)
-                else -1
-            )
+            if implied_action == 0:
+                hypothetical_payoff = 0
+            else:
+                hypothetical_payoff = 1 if not overcrowded else -1
             self.scores[j] += hypothetical_payoff
 
     def reset(self) -> None:

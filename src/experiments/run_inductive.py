@@ -2,12 +2,15 @@
 Run repeated-game experiments with inductive strategies (non_recency, recency).
 
 Virtual-payoff scoring under strict-threshold convention:
-  - non_recency: s_j(t+1) = s_j(t) + \tilde u_j(t)
-  - recency:     s_j(t+1) = lambda * s_j(t) + \tilde u_j(t)
+  - non_recency: s_j(t+1) = s_j(t) + ũ_j(t)
+  - recency:     s_j(t+1) = λ * s_j(t) + ũ_j(t)
 
-Both use the same predictor bank, same action rule (hard argmax), same
-repeated-game engine. The only difference is whether old predictor performance
-is exponentially forgotten.
+where ũ_j(t) follows the game payoff for the predictor's implied action:
+  attend + A < L → +1, attend + A >= L → -1, stay home → 0.
+
+Both modes use the same predictor bank, same action rule (hard argmax),
+same scoring convention, and same repeated-game engine. The only difference
+is whether old predictor performance is exponentially forgotten.
 """
 
 from __future__ import annotations

@@ -300,7 +300,8 @@ def main() -> None:
         result = case_result["result"]
         result.rounds_dataframe().to_csv(case_dir / "rounds.csv", index=False)
         
-        player_df = result.players_dataframe(agents=agents)
+        player_df = result.players_dataframe()
+        player_df["agent_type"] = [type(a).__name__ for a in agents]
         player_df.to_csv(case_dir / "players.csv", index=False)
         
         pd.DataFrame([case_result["metrics"]]).to_csv(case_dir / "summary.csv", index=False)

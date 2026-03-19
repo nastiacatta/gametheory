@@ -204,7 +204,8 @@ def build_homogeneous_softmax(
     """
     All agents use SoftmaxPredictorAgent with virtual-payoff scoring.
 
-    Score update: s_j(t+1) = s_j(t) + ũ_j(t) where ũ = +1 if implied action wins, -1 otherwise.
+    Score update: s_j(t+1) = s_j(t) + ũ_j(t) where ũ follows the game payoff
+    for the implied action (attend +1/-1, stay home 0).
     Selection: softmax/Boltzmann distribution with inverse temperature beta.
 
     If predictor_banks is provided, use those instead of sampling new banks.
@@ -477,10 +478,11 @@ def build_virtual_payoff_from_banks(
     predictor_banks: Sequence[PredictorBank],
 ) -> List[BaseAgent]:
     """
-    Build agents using symmetric virtual-payoff scoring from pre-sampled banks.
+    Build agents using virtual-payoff scoring from pre-sampled banks.
 
     Score update: s_j(t+1) = s_j(t) + ũ_j(t)
-    where ũ = +1 if implied action would have won, -1 otherwise.
+    where ũ follows the game payoff for the implied action
+    (attend +1/-1, stay home 0).
 
     Use with build_best_predictor_from_banks for matched comparison.
     """

@@ -84,11 +84,11 @@ The default is:
 **Heterogeneous populations:**
 
 ```bash
-# Mixed inductive/random
-python -m src.main heterogeneous --mode mix --p_inductive 0.8 --p_random 0.2
+# Mixed best-predictor/softmax/random agents
+python -m src.main heterogeneous --mode mix --p_best 0.4 --p_softmax 0.4 --p_random 0.2
 
 # Producer/speculator split
-python -m src.main heterogeneous --mode producer_speculator --n_producers 50
+python -m src.main heterogeneous --mode producer_speculator --n_producers 50 --speculator_type best
 ```
 
 **Multi-seed parameter sweep:**
@@ -158,24 +158,28 @@ These are **Arthur-inspired inductive heuristics**, not a reconstruction of any 
 
 ### Score Update Rules
 
-Two modes based on memory treatment, using **virtual payoff** under the strict-threshold convention:
+The implementation provides two scoring rules for evaluating predictors:
 
-**Non-recency (cumulative virtual payoff):**
+**1. Forecast-error scoring** (used by `BestPredictorAgent`, `EpsilonGreedyPredictorAgent`):
+
+$$s_j(t+1) = s_j(t) - |\hat{A}_j(t) - A_t|$$
+
+Rewards accurate attendance forecasts.
+
+**2. Virtual-payoff scoring** (used by `VirtualPayoffPredictorAgent`, `SoftmaxPredictorAgent`, `InductivePredictorAgent`, `RecencyWeightedPredictorAgent`, `TurnoverPredictorAgent`):
 
 $$s_j(t+1) = s_j(t) + \tilde{u}_j(t)$$
 
-**Recency (exponentially decayed virtual payoff):**
-
-$$s_j(t+1) = \lambda \cdot s_j(t) + \tilde{u}_j(t), \quad \lambda \in (0,1]$$
-
-where $\tilde{u}_j(t)$ is the virtual payoff predictor $j$ would have earned:
+where $\tilde{u}_j(t)$ follows the strict-threshold game payoff for the predictor's implied action:
 - attend and A < L: +1
 - attend and A >= L: -1
-- stay home: 0 (always)
+- stay home: 0 (neutral outside option)
+
+**Recency weighting** applies exponential decay to either scoring rule:
+
+$$s_j(t+1) = \lambda \cdot s_j(t) + \Delta_j(t), \quad \lambda \in (0,1]$$
 
 Lower λ = faster forgetting of past performance.
-
-Both modes use the same predictor bank, same action rule (hard argmax), and same repeated-game engine. The only difference is whether old predictor performance is exponentially forgotten.
 
 ### Experiment Runners
 
@@ -183,7 +187,7 @@ Both modes use the same predictor bank, same action rule (hard argmax), and same
 python -m src.experiments.run_repeated_baselines --n_rounds 200 --output_dir outputs/baselines
 python -m src.experiments.run_inductive --mode recency --lambda_decay 0.95 --predictors_per_agent 6 --n_rounds 200
 python -m src.experiments.run_inductive --mode non_recency --predictors_per_agent 6 --n_rounds 200
-python -m src.experiments.run_heterogeneous --mode mix --p_inductive 0.8 --p_random 0.2 --n_rounds 200
+python -m src.experiments.run_heterogeneous --mode mix --p_best 0.5 --p_softmax 0.5 --n_rounds 200
 python -m src.experiments.run_heterogeneous --mode producer_speculator --n_producers 50 --n_rounds 200
 ```
 
