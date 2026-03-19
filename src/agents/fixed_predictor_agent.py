@@ -5,7 +5,7 @@ This agent is assigned a single predictor at construction and never switches.
 It serves as a non-adaptive baseline for comparison with inductive agents
 that track predictor performance and switch to the currently best one.
 
-The decision rule is: attend iff predicted_attendance <= threshold.
+The decision rule is: attend iff predicted_attendance < threshold.
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ class FixedPredictorAgent(BaseAgent):
         self.predictor_fn = predictor_fn
 
     def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
-        """Predict attendance and attend iff predicted_attendance <= threshold.
+        """Predict attendance and attend iff predicted_attendance < threshold.
 
         Args:
             context: Current game state including attendance history.
@@ -55,7 +55,7 @@ class FixedPredictorAgent(BaseAgent):
             context.n_players,
             context.threshold,
         )
-        return int(predicted_attendance <= context.threshold)
+        return int(predicted_attendance < context.threshold)
 
     def snapshot(self) -> dict[str, Any]:
         """Return serialisable state for reporting/exports."""

@@ -99,7 +99,7 @@ class RecencyWeightedPredictorAgent(BaseAgent):
         self.predictor_history.append(chosen_idx)
         self.score_history.append(list(self.scores))
 
-        return int(predictions[chosen_idx] <= context.threshold)
+        return int(predictions[chosen_idx] < context.threshold)
 
     def update(
         self,
@@ -110,10 +110,10 @@ class RecencyWeightedPredictorAgent(BaseAgent):
     ) -> None:
         """Apply exponential decay and update scores with virtual payoffs."""
         _ = action, payoff
-        overcrowded = realised_attendance > context.threshold
+        overcrowded = realised_attendance >= context.threshold
         for j, pred in enumerate(self._last_predictions):
             decayed = self.lambda_decay * self.scores[j]
-            implied_action = int(pred <= context.threshold)
+            implied_action = int(pred < context.threshold)
             hypothetical_payoff = (
                 1 if (implied_action == 1 and not overcrowded)
                 or (implied_action == 0 and overcrowded)

@@ -9,7 +9,7 @@ def test_non_recency_virtual_payoff_attend_and_win():
     new_score = updater.update(
         old_score=0.0,
         prediction=55.0,           # implies attend
-        realised_attendance=58,    # not overcrowded (A <= L)
+        realised_attendance=58,    # not overcrowded (A < L)
         threshold=60,
     )
     assert new_score == 1.0
@@ -21,7 +21,7 @@ def test_non_recency_virtual_payoff_attend_and_lose():
     new_score = updater.update(
         old_score=0.0,
         prediction=55.0,           # implies attend
-        realised_attendance=70,    # overcrowded (A > L)
+        realised_attendance=70,    # overcrowded (A >= L)
         threshold=60,
     )
     assert new_score == -1.0

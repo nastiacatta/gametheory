@@ -21,7 +21,7 @@ class TestFixedPredictorAgent:
     """Tests for the FixedPredictorAgent class."""
 
     def test_attend_when_prediction_below_threshold(self) -> None:
-        """Agent attends when predicted attendance <= threshold."""
+        """Agent attends when predicted attendance < threshold."""
         agent = FixedPredictorAgent("last_value", last_value)
         rng = np.random.default_rng(42)
 
@@ -48,8 +48,8 @@ class TestFixedPredictorAgent:
         action = agent.choose_action(context, rng)
         assert action == 0
 
-    def test_attend_when_prediction_equals_threshold(self) -> None:
-        """Agent attends when predicted attendance == threshold (weak threshold)."""
+    def test_stay_when_prediction_equals_threshold(self) -> None:
+        """Agent stays home when predicted attendance == threshold (strict threshold)."""
         agent = FixedPredictorAgent("last_value", last_value)
         rng = np.random.default_rng(42)
 
@@ -60,10 +60,10 @@ class TestFixedPredictorAgent:
             round_index=1,
         )
         action = agent.choose_action(context, rng)
-        assert action == 1
+        assert action == 0
 
     def test_fallback_to_threshold_on_empty_history(self) -> None:
-        """With empty history, last_value returns threshold, so agent attends."""
+        """With empty history, last_value returns threshold, so agent stays home (strict)."""
         agent = FixedPredictorAgent("last_value", last_value)
         rng = np.random.default_rng(42)
 
@@ -74,7 +74,7 @@ class TestFixedPredictorAgent:
             round_index=0,
         )
         action = agent.choose_action(context, rng)
-        assert action == 1
+        assert action == 0
 
     def test_mirror_predictor_contrarian_behaviour(self) -> None:
         """Mirror predictor: if last was 30, predicts 101-30=71 > 60, so stay."""

@@ -1,7 +1,7 @@
 """
 Run repeated-game experiments with inductive strategies (non_recency, recency).
 
-Virtual-payoff scoring under weak-threshold convention:
+Virtual-payoff scoring under strict-threshold convention:
   - non_recency: s_j(t+1) = s_j(t) + \tilde u_j(t)
   - recency:     s_j(t+1) = lambda * s_j(t) + \tilde u_j(t)
 

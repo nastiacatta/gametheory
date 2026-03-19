@@ -1,12 +1,12 @@
 """
 Score update policies for InductivePredictorAgent.
 
-This module implements the "El Farol" or "weak-threshold" virtual payoff convention,
+This module implements the "El Farol" or "strict-threshold" virtual payoff convention,
 which differs from the symmetric binary payoff used by other agent families.
 
-El Farol / Weak-Threshold Convention (this module):
-    - attend and A <= L  -> +1  (correct attendance)
-    - attend and A > L   -> -1  (incorrect attendance)
+El Farol / Strict-Threshold Convention (this module):
+    - attend and A < L   -> +1  (correct attendance)
+    - attend and A >= L  -> -1  (incorrect attendance)
     - stay home          ->  0  (no payoff, regardless of outcome)
 
 This convention treats staying home as a "safe" option with neutral payoff,
@@ -23,7 +23,7 @@ The symmetric convention rewards correct predictions on both sides, making it
 closer to Minority Game scoring where correctly predicting the minority wins.
 
 For a predictor forecast Â_j(t), its implied action is:
-    - attend if Â_j(t) <= L
+    - attend if Â_j(t) < L
     - stay home otherwise
 
 Score update rules:
@@ -56,17 +56,17 @@ def _virtual_payoff_from_prediction(
     threshold: int,
 ) -> float:
     """
-    Weak-threshold virtual payoff.
+    Strict-threshold virtual payoff.
 
     Staying home always yields 0.
-    Attending yields +1 if A <= L, -1 if A > L.
+    Attending yields +1 if A < L, -1 if A >= L.
     """
-    implied_action = int(prediction <= threshold)
+    implied_action = int(prediction < threshold)
 
     if implied_action == 0:
         return 0.0
 
-    return 1.0 if realised_attendance <= threshold else -1.0
+    return 1.0 if realised_attendance < threshold else -1.0
 
 
 @dataclass(frozen=True)

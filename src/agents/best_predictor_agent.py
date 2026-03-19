@@ -3,7 +3,7 @@ Predictor-score best-predictor agent (hard argmax) with cumulative absolute-erro
 
 Each agent holds a bank of attendance predictors and a cumulative score
 for each. Every round it uses the predictor with the highest score to
-forecast attendance, then attends iff the forecast <= threshold.
+forecast attendance, then attends iff the forecast < threshold.
 
 After the realised attendance is observed, all predictor scores are updated
 using cumulative absolute forecast error:
@@ -64,7 +64,7 @@ class BestPredictorAgent(BaseAgent):
         self._active_idx = best_idx
         self.predictor_history.append(best_idx)
 
-        return int(predictions[best_idx] <= context.threshold)
+        return int(predictions[best_idx] < context.threshold)
 
     def update(
         self,

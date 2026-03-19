@@ -10,15 +10,15 @@ Minority Game scoring where correctly predicting the minority wins:
 
     Symmetric Binary Convention (this agent, SoftmaxPredictorAgent,
     RecencyWeightedPredictorAgent, TurnoverPredictorAgent):
-        u(a, A) = +1  if a=1 and A<=L  (attended and not overcrowded)
-                = +1  if a=0 and A>L   (stayed home and was overcrowded)
+        u(a, A) = +1  if a=1 and A<L   (attended and not overcrowded)
+                = +1  if a=0 and A>=L  (stayed home and was overcrowded)
                 = -1  otherwise
 
     This rewards both correct attendance AND correct abstention.
 
-Compare with the El Farol / Weak-Threshold Convention (InductivePredictorAgent):
-        u(a, A) = +1  if a=1 and A<=L
-                = -1  if a=1 and A>L
+Compare with the El Farol / Strict-Threshold Convention (InductivePredictorAgent):
+        u(a, A) = +1  if a=1 and A<L
+                = -1  if a=1 and A>=L
                 =  0  if a=0  (stay home is always neutral)
 
     The El Farol convention treats staying home as a risk-free neutral option.
@@ -51,7 +51,7 @@ class VirtualPayoffPredictorAgent(BaseAgent):
     Each round:
     - every predictor generates an attendance forecast
     - the currently highest-scoring predictor is selected (hard argmax)
-    - the agent attends iff that forecast <= threshold
+    - the agent attends iff that forecast < threshold
 
     After realised attendance is observed, ALL monitored predictors are updated
     by the payoff they would have earned, even if they were not selected.
@@ -87,7 +87,7 @@ class VirtualPayoffPredictorAgent(BaseAgent):
         self._active_idx = best_idx
         self.predictor_history.append(best_idx)
 
-        return int(predictions[best_idx] <= context.threshold)
+        return int(predictions[best_idx] < context.threshold)
 
     def update(
         self,
@@ -98,10 +98,10 @@ class VirtualPayoffPredictorAgent(BaseAgent):
     ) -> None:
         _ = action, payoff
 
-        overcrowded = realised_attendance > context.threshold
+        overcrowded = realised_attendance >= context.threshold
 
         for j, pred in enumerate(self._last_predictions):
-            implied_action = int(pred <= context.threshold)
+            implied_action = int(pred < context.threshold)
 
             hypothetical_payoff = (
                 1

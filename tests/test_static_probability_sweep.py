@@ -308,7 +308,7 @@ class TestPayoffConsistencyWithCoreModel:
 
     def test_above_threshold_attendees_lose(self) -> None:
         """
-        When attendance > threshold, attendees get -1.
+        When attendance >= threshold, attendees get -1.
         """
         n_samples = 10000
         n_players = 10

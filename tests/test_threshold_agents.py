@@ -1,7 +1,7 @@
 """Regression tests for threshold boundary behaviour in predictor-based agents.
 
-These tests verify that agents correctly attend when predicted_attendance == threshold
-(the <= boundary), matching the Lecture 15 convention and the payoff engine.
+These tests verify that agents correctly stay home when predicted_attendance == threshold
+(the < boundary), matching the strict threshold convention and the payoff engine.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ def constant_predictor(value: float):
     return predictor
 
 
-def test_fixed_attendance_agent_attends_at_threshold() -> None:
+def test_fixed_attendance_agent_stays_home_at_threshold() -> None:
     agent = FixedAttendanceAgent(predicted_attendance=60)
     context = RoundContext(
         n_players=101,
@@ -29,10 +29,10 @@ def test_fixed_attendance_agent_attends_at_threshold() -> None:
         round_index=0,
     )
     rng = np.random.default_rng(1)
-    assert agent.choose_action(context, rng) == 1
+    assert agent.choose_action(context, rng) == 0
 
 
-def test_best_predictor_agent_attends_at_threshold() -> None:
+def test_best_predictor_agent_stays_home_at_threshold() -> None:
     predictors = [("eq_threshold", constant_predictor(60.0))]
     agent = BestPredictorAgent(predictors=predictors)
     context = RoundContext(
@@ -42,10 +42,10 @@ def test_best_predictor_agent_attends_at_threshold() -> None:
         round_index=0,
     )
     rng = np.random.default_rng(1)
-    assert agent.choose_action(context, rng) == 1
+    assert agent.choose_action(context, rng) == 0
 
 
-def test_softmax_predictor_agent_attends_at_threshold() -> None:
+def test_softmax_predictor_agent_stays_home_at_threshold() -> None:
     predictors = [("eq_threshold", constant_predictor(60.0))]
     agent = SoftmaxPredictorAgent(predictors=predictors, beta=1.0)
     context = RoundContext(
@@ -55,7 +55,7 @@ def test_softmax_predictor_agent_attends_at_threshold() -> None:
         round_index=0,
     )
     rng = np.random.default_rng(1)
-    assert agent.choose_action(context, rng) == 1
+    assert agent.choose_action(context, rng) == 0
 
 
 def test_threshold_agents_stay_home_above_threshold() -> None:

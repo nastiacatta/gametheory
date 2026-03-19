@@ -9,7 +9,7 @@ predictor is chosen stochastically via a Boltzmann / softmax distribution:
 beta = 0  =>  uniform random choice  (pure exploration)
 beta -> inf  =>  hard argmax         (pure exploitation)
 
-Agent attends iff the chosen predictor forecasts attendance <= threshold.
+Agent attends iff the chosen predictor forecasts attendance < threshold.
 
 Scores are updated using virtual payoff: each predictor is scored by the
 payoff it would have earned under the realised attendance, whether or not
@@ -63,7 +63,7 @@ class SoftmaxPredictorAgent(BaseAgent):
         self._active_idx = chosen_idx
         self.predictor_history.append(chosen_idx)
 
-        return int(predictions[chosen_idx] <= context.threshold)
+        return int(predictions[chosen_idx] < context.threshold)
 
     def update(
         self,
@@ -73,9 +73,9 @@ class SoftmaxPredictorAgent(BaseAgent):
         payoff: int,
     ) -> None:
         _ = action, payoff
-        overcrowded = realised_attendance > context.threshold
+        overcrowded = realised_attendance >= context.threshold
         for j, pred in enumerate(self._last_predictions):
-            implied_action = int(pred <= context.threshold)
+            implied_action = int(pred < context.threshold)
             hypothetical_payoff = (
                 1 if (implied_action == 1 and not overcrowded)
                 or (implied_action == 0 and overcrowded)

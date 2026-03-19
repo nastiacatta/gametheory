@@ -26,13 +26,13 @@ def p_threshold(history, n_players, threshold):
 class TestInductivePredictorAgentBasics:
     """Basic functionality tests."""
 
-    def test_agent_attends_at_threshold(self) -> None:
-        """Agent should attend when prediction equals threshold."""
+    def test_agent_stays_home_at_threshold(self) -> None:
+        """Agent should stay home when prediction equals threshold (strict rule)."""
         predictors = [("at_threshold", p_threshold)]
         agent = InductivePredictorAgent(predictors=predictors)
         ctx = RoundContext(round_index=0, n_players=101, threshold=60, attendance_history=())
         rng = np.random.default_rng(42)
-        assert agent.choose_action(ctx, rng) == 1
+        assert agent.choose_action(ctx, rng) == 0
 
     def test_agent_attends_below_threshold(self) -> None:
         """Agent should attend when prediction is below threshold."""

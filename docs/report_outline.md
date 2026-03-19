@@ -13,11 +13,11 @@ This outline provides a suggested structure for the coursework report. Section h
 - Capacity threshold \(L = 60\).
 
 ### 1.2 Payoff Function
-- State the weak threshold payoff convention explicitly:
-  - \(+1\) if attend and \(A \le L\)
-  - \(-1\) if attend and \(A > L\)
+- State the strict threshold payoff convention explicitly:
+  - \(+1\) if attend and \(A < L\)
+  - \(-1\) if attend and \(A \ge L\)
   - \(0\) if stay home
-- Note: this differs from strict-threshold formulations (which use \(A < L\)).
+- Note: this differs from weak-threshold formulations (which use \(A \le L\)).
 
 ### 1.3 Real-World Motivation
 - El Farol bar problem (Arthur, 1994).
@@ -28,15 +28,15 @@ This outline provides a suggested structure for the coursework report. Section h
 ## 2. Static Analysis
 
 ### 2.1 Pure-Strategy Nash Equilibria
-- State the result: NE profiles have \(A = L\).
+- State the result: NE profiles have \(A = L - 1\).
 - Provide proof sketch:
-  - \(A < L\): stay-home player has profitable deviation.
-  - \(A > L\): attendee has profitable deviation.
-  - \(A = L\): no player has profitable deviation.
-- Count: \(\binom{n}{L}\) equilibria.
+  - \(A < L - 1\): stay-home player has profitable deviation (would bring A to < L, earning +1).
+  - \(A \ge L\): attendee has profitable deviation (stay home earns 0 > -1).
+  - \(A = L - 1\): no player has profitable deviation.
+- Count: \(\binom{n}{L-1}\) equilibria.
 
 ### 2.2 Symmetric Mixed-Strategy Equilibrium
-- Derive the indifference condition: \(\Pr(X \le L - 1) = 1/2\) where \(X \sim \mathrm{Bin}(n-1, p)\).
+- Derive the indifference condition: \(\Pr(X \le L - 2) = 1/2\) where \(X \sim \mathrm{Bin}(n-1, p)\).
 - Discuss numerical solution for default parameters.
 - Interpret expected attendance under mixed equilibrium.
 

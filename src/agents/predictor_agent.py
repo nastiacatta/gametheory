@@ -3,10 +3,10 @@ Unified inductive predictor agent with pluggable score updating.
 
 Each agent holds a bank of attendance predictors and a score for each.
 Every round it uses the predictor with the highest score to forecast
-attendance, then attends iff the forecast <= threshold.
+attendance, then attends iff the forecast < threshold.
 
 After the realised attendance is observed, all predictor scores are updated
-via the plugged-in ScoreUpdater using virtual payoff under the weak-threshold
+via the plugged-in ScoreUpdater using virtual payoff under the strict-threshold
 El Farol convention.
 """
 
@@ -60,7 +60,7 @@ class InductivePredictorAgent(BaseAgent):
 
         self._active_idx = best_idx
         self.predictor_history.append(best_idx)
-        return int(predictions[best_idx] <= context.threshold)
+        return int(predictions[best_idx] < context.threshold)
 
     def update(
         self,

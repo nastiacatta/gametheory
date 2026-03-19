@@ -4,7 +4,7 @@ Producer (non-adaptive) agent for heterogeneous population experiments.
 Models agents whose attendance decision is independent of past attendance
 dynamics — analogous to 'producers' in the ecology framing of markets.
 Each round the agent forms a noisy prediction of attendance and attends
-if that prediction is at most the threshold.
+if that prediction is strictly below the threshold.
 """
 
 from __future__ import annotations
@@ -31,4 +31,4 @@ class ProducerAgent(BaseAgent):
 
     def choose_action(self, context: RoundContext, rng: np.random.Generator) -> int:
         prediction = self.base_prediction + rng.normal(0.0, self.noise_std)
-        return int(prediction <= context.threshold)
+        return int(prediction < context.threshold)

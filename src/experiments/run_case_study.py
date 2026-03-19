@@ -72,7 +72,7 @@ class RoutineAgent(BaseAgent):
         if self._last_payoff > 0:
             return self._last_action
         elif self._last_payoff == 0 and self._last_action == 0:
-            if context.attendance_history and context.attendance_history[-1] > context.threshold:
+            if context.attendance_history and context.attendance_history[-1] >= context.threshold:
                 return 0
         
         if rng.random() < self.inertia:
@@ -94,7 +94,7 @@ class TrendAgent(BaseAgent):
     """
     Agent that follows recent attendance trends (bandwagon effect).
     
-    Uses rolling mean predictor: if predicted attendance <= threshold, attend.
+    Uses rolling mean predictor: if predicted attendance < threshold, attend.
     """
 
     def __init__(self, window: int = 4) -> None:
@@ -108,7 +108,7 @@ class TrendAgent(BaseAgent):
         prediction = self.predictor(
             context.attendance_history, context.n_players, context.threshold
         )
-        return int(prediction <= context.threshold)
+        return int(prediction < context.threshold)
 
     def update(
         self,
@@ -138,7 +138,7 @@ class ContrarianAgent(BaseAgent):
         prediction = self.predictor(
             context.attendance_history, context.n_players, context.threshold
         )
-        return int(prediction <= context.threshold)
+        return int(prediction < context.threshold)
 
     def update(
         self,

@@ -143,7 +143,7 @@ class TurnoverPredictorAgent(BaseAgent):
         self._active_idx = chosen_idx
         self.predictor_history.append(chosen_idx)
 
-        return int(predictions[chosen_idx] <= context.threshold)
+        return int(predictions[chosen_idx] < context.threshold)
 
     def update(
         self,
@@ -154,11 +154,11 @@ class TurnoverPredictorAgent(BaseAgent):
     ) -> None:
         """Update scores with decay and virtual payoffs, potentially replace worst predictor."""
         _ = action, payoff
-        overcrowded = realised_attendance > context.threshold
+        overcrowded = realised_attendance >= context.threshold
         
         for j, pred in enumerate(self._last_predictions):
             decayed = self.lambda_decay * self.scores[j]
-            implied_action = int(pred <= context.threshold)
+            implied_action = int(pred < context.threshold)
             hypothetical_payoff = (
                 1 if (implied_action == 1 and not overcrowded)
                 or (implied_action == 0 and overcrowded)
@@ -167,7 +167,7 @@ class TurnoverPredictorAgent(BaseAgent):
             self.scores[j] = decayed + hypothetical_payoff
         
         active_pred = self._last_predictions[self._active_idx]
-        active_implied = int(active_pred <= context.threshold)
+        active_implied = int(active_pred < context.threshold)
         active_payoff = (
             1 if (active_implied == 1 and not overcrowded)
             or (active_implied == 0 and overcrowded)

@@ -5,7 +5,7 @@ With probability epsilon, selects a random predictor (exploration).
 With probability 1 - epsilon, selects the predictor with the highest score (exploitation).
 Ties in best scores are broken randomly.
 
-Agent attends iff the chosen predictor forecasts attendance <= threshold.
+Agent attends iff the chosen predictor forecasts attendance < threshold.
 
 This is a simple exploration-exploitation balance that is easy to explain:
     j_i(t) = uniform random predictor       with probability epsilon
@@ -63,7 +63,7 @@ class EpsilonGreedyPredictorAgent(BaseAgent):
 
         self._active_idx = idx
         self.predictor_history.append(idx)
-        return int(predictions[idx] <= context.threshold)
+        return int(predictions[idx] < context.threshold)
 
     def update(
         self,
