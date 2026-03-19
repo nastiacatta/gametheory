@@ -37,7 +37,7 @@ def plot_attendance_over_time(
     plt.figure(figsize=(10, 5))
     plt.plot(x, y, linewidth=1.4, label="Attendance")
     plt.axhline(threshold, linestyle="--", color="gray", label=f"L={threshold}")
-    plt.fill_between(x, threshold, y, where=(y > threshold), alpha=0.20, interpolate=True)
+    plt.fill_between(x, threshold, y, where=(y >= threshold), alpha=0.20, interpolate=True)
 
     plt.xlabel("Round")
     plt.ylabel("Attendance")
@@ -574,7 +574,7 @@ def plot_static_overcrowding_vs_p(
     plt.axhline(0.5, linestyle="--", color="gray", alpha=0.7, label="50%")
 
     plt.xlabel("Attendance probability p")
-    plt.ylabel("Overcrowding rate (fraction with A > L)")
+    plt.ylabel("Overcrowding rate (fraction with A >= L)")
     plt.title(f"Static game: overcrowding rate vs p (L={threshold})")
     plt.legend()
     _finish_plot(output_path)

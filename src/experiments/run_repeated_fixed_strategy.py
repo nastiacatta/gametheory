@@ -6,7 +6,7 @@ Definition (following Arthur's predictor framework):
     predictor to the evolving public attendance history in every round.
     No switching, no score updates, no learning.
 
-    a_i(t) = 1[f_i(H_t) <= L]
+    a_i(t) = 1[f_i(H_t) < L]
 
     where f_i is assigned once at initialisation and H_t is the attendance
     history before round t.

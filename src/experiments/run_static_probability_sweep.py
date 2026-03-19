@@ -57,7 +57,7 @@ def simulate_static_mixed_profile(
             - mean_attendance: average attendance across samples
             - std_attendance: standard deviation of attendance
             - mean_payoff_per_player: average payoff per player
-            - overcrowding_rate: fraction of samples with A > L
+            - overcrowding_rate: fraction of samples with A >= L
             - mean_n_positive: average number of players with payoff +1
             - mean_n_negative: average number of players with payoff -1
             - mean_n_zero: average number of players with payoff 0
