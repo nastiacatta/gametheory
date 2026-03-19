@@ -43,8 +43,8 @@ def test_overcrowding_rate_all_above() -> None:
     assert overcrowding_rate([61, 70, 80], 60) == 1.0
 
 
-def test_overcrowding_rate_uses_weak_inequality() -> None:
-    """Under strict-threshold: 60, 61, 60 are overcrowded (A >= L), only 59 is not."""
+def test_overcrowding_rate_includes_threshold_exact() -> None:
+    """Under strict-threshold: A=60, 61, 60 are overcrowded (A >= L), only A=59 is not."""
     assert overcrowding_rate([60, 61, 59, 60], 60) == 0.75
 
 

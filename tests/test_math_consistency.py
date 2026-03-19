@@ -16,7 +16,7 @@ from src.analysis.metrics import overcrowding_rate
 from src.game.payoff import build_stage_outcome
 
 
-def test_overcrowding_rate_is_weakly_inclusive() -> None:
+def test_overcrowding_includes_threshold_boundary() -> None:
     """Overcrowding means A_t >= L (strict-threshold: A = L counts as overcrowded)."""
     assert overcrowding_rate([59, 60, 61], 60) == 2 / 3
 
